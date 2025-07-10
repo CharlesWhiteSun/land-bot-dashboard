@@ -1,0 +1,17 @@
+from enum import Enum
+
+class ErrorCode(Enum):
+    FILE_NOT_FOUND = "E001"
+    MISSING_COLUMNS = "E003"
+
+    NETWORK_ERROR = "E100"
+
+    DB_CONNECTION_ERROR = "E200"
+
+    TEXT_PARSE_ERROR = "E300"
+    REGEX_COMPILE_ERROR = "E301"
+    REGEX_NO_MATCH = "E302"
+    
+    SERVER_BUSY_ERROR = "E500"
+    
+    UNKNOWN_ERROR = "E999"

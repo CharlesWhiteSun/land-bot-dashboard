@@ -1,0 +1,8 @@
+# 忽略該資料夾及以下所有檔案
+__pycache__/
+.pytest_cache/
+data/
+logs/
+
+# 忽略該副檔名
+*.pyc
