@@ -7,9 +7,8 @@ from utils.trace import generate_trace_id
 from utils.logger import log_error
 from providers.enum_error_provider import EnumErrorProvider
 
-
-def load_initial_data() -> bool:
-
+def data_ready() -> bool:
+    
     err_handler = UIErrorHandler(EnumErrorProvider())
 
     try:
@@ -34,7 +33,6 @@ def load_initial_data() -> bool:
         err_handler.show_error(ErrorCode.UNKNOWN_ERROR, trace_id)
 
     return False
-
 
 def run_data_service():
     err_handler = UIErrorHandler(EnumErrorProvider())
