@@ -15,6 +15,6 @@ def render_sidebar():
         with ui.column().style('''
             gap: 0.5rem;
         '''):
-            ui.button('首　　頁', icon='home', color='#00120B', on_click=lambda: ui.notify('你在首頁')).style('width: 100%;')
-            ui.button('下載資料', icon='download', color='#00120B', on_click=lambda: ui.notify('準備下載資料...')).style('width: 100%;')
-            ui.button('資料分析', icon='analytics', color='#00120B', on_click=lambda: ui.notify('即將進入資料分析...')).style('width: 100%;')
+            ui.button('首　　頁', icon='home', color='#00120B', on_click=lambda: ui.notify('你在首頁', position='top', timeout=2000)).style('width: 100%;')
+            ui.button('更新資料', icon='download', color='#00120B', on_click=lambda: ui.notify('準備下載資料...', position='top', timeout=2000)).style('width: 100%;')
+            ui.button('資料分析', icon='analytics', color='#00120B', on_click=lambda: ui.notify('即將進入資料分析...', position='top', timeout=2000)).style('width: 100%;')

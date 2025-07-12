@@ -25,18 +25,20 @@ with ui.row().style('''
         padding: 1.5rem;
     '''):
     with ui.column():
-        ui.label('歡迎使用房價資料探索工具 🏙️').style('''
+        ui.label('🏙️ 歡迎使用房價資料探索工具').style('''
             font-size: 1.25rem; 
             font-weight: 600;
         ''')
         ui.label('您可以從左側選單選取操作項目，如下載資料、檢視分析結果等。')
         ui.separator()
-        ui.markdown("""
-        ### 使用說明
-                    
-        - 點選左側選單可切換頁面  
-        - 後續將整合實價登錄、地區分析、價格變動趨勢等資訊
-        """)
+        ui.label('🗺️ 使用說明').style('''
+            font-size: 1.25rem; 
+            font-weight: 600;
+        ''')
+        ui.markdown('''
+            - 點選左側選單可切換頁面  
+            - 後續將整合實價登錄、地區分析、價格變動趨勢等資訊
+        ''')
 
 # Footer
 render_footer()
