@@ -1,3 +1,8 @@
+import traceback
+import os
+import json
+
+from enums.error_code import ErrorCode
 from fastapi import APIRouter, HTTPException
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -6,31 +11,26 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 from utils.logger import log_error
-from enums.error_code import ErrorCode
-import traceback
-import os
-import json
+from utils.trace import generate_trace_id
+from utils.response_helper import success_response, error_response
 
 router = APIRouter()
 
 DATA_DIR = os.path.join("api", "data", "real_estate", "raw")
-DATA_FILE = os.path.join(DATA_DIR, "fetch_options_route.txt")
+DATA_FILE = os.path.join(DATA_DIR, "fetch_options_route.json")
 
 
-def save_or_update_data(new_data: dict) -> None:
+def save_or_update_data(new_data: dict) -> bool:
     os.makedirs(DATA_DIR, exist_ok=True)
 
-    # 檔案不存在：直接建立並寫入
     if not os.path.exists(DATA_FILE):
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(new_data, f, ensure_ascii=False, indent=2)
-        return
+        return True  # 第一次寫入，視為有更新
 
-    # 檔案存在：讀取後比較是否有缺少 key
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         existing_data = json.load(f)
 
-    # 比較並補齊缺漏的 key-value
     updated = False
     for key, val in new_data["historySeason_id"].items():
         if key not in existing_data.get("historySeason_id", {}):
@@ -40,6 +40,8 @@ def save_or_update_data(new_data: dict) -> None:
     if updated:
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(existing_data, f, ensure_ascii=False, indent=2)
+
+    return updated
 
 
 @router.get("/fetch_options")
@@ -54,22 +56,20 @@ async def fetch_options():
         driver = webdriver.Chrome(options=chrome_options)
         driver.get("https://plvr.land.moi.gov.tw/DownloadOpenData")
 
-        # 點擊「非本期下載」tab
         history_tab = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, 'a.btndl[aria-controls="tab_opendata_history_content"]'))
-        )
+            EC.element_to_be_clickable(
+                (By.CSS_SELECTOR,
+                 'a.btndl[aria-controls="tab_opendata_history_content"]')))
         history_tab.click()
 
-        # 等待下拉選單出現
         WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "historySeason_id"))
-        )
+            EC.presence_of_element_located((By.ID, "historySeason_id")))
 
-        # 解析 HTML
         soup = BeautifulSoup(driver.page_source, "html.parser")
         select_element = soup.find("select", {"id": "historySeason_id"})
         if not select_element:
-            raise HTTPException(status_code=404, detail="找不到 historySeason_id 元素")
+            raise HTTPException(status_code=404,
+                                detail="找不到 historySeason_id 元素")
 
         result = {
             "historySeason_id": {
@@ -79,15 +79,22 @@ async def fetch_options():
             }
         }
 
-        # 檢查檔案並儲存/更新
-        save_or_update_data(result)
+        updated = save_or_update_data(result)
 
-        return result
+        return success_response({
+            "historySeason_id": result["historySeason_id"],
+            "updated": updated
+        })
 
     except Exception as e:
-        tb_str = traceback.format_exc()
+        trace_id = generate_trace_id()
         log_error(ErrorCode.UNKNOWN_ERROR.value, f"Selenium 抓取失敗：{str(e)}", "")
-        raise HTTPException(status_code=500, detail=f"抓取失敗：{str(e)}\nStacktrace:\n{tb_str}") from e
+        return error_response(
+            error_code=ErrorCode.UNKNOWN_ERROR.value,
+            message="資料抓取失敗，請稍後再試",
+            trace_id=trace_id,
+            status_code=500
+        )
 
     finally:
         if driver:

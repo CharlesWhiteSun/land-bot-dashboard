@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+
 from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from selenium import webdriver
@@ -8,11 +9,11 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
 from utils.logger import log_info, log_error
 from utils.trace import generate_trace_id
 from utils.notice_parser import parse_notice_to_dict
 from enums.error_code import ErrorCode
+from utils.response_helper import success_response, error_response
 
 router = APIRouter()
 
@@ -48,18 +49,18 @@ def fetch_latest_notice():
             EC.presence_of_element_located((By.CSS_SELECTOR, "#tab_opendata_active_content span.text-danger"))
         )
         raw_text = span.text.strip()
-        parsed = parse_notice_to_dict(raw_text)
+        data = parse_notice_to_dict(raw_text)
 
         # 比對舊資料
         if os.path.exists(json_path):
             with open(json_path, "r", encoding="utf-8") as f:
                 existing = json.load(f)
 
-            if existing == parsed:
+            if existing == data:
                 log_info("📄 公告內容未變更，略過更新")
                 return {
                     "message": "公告內容未變更，略過更新",
-                    "content": parsed
+                    "content": data
                 }
 
             # 備份舊資料
@@ -70,7 +71,7 @@ def fetch_latest_notice():
 
         # 儲存新 JSON
         with open(json_path, "w", encoding="utf-8") as f:
-            json.dump(parsed, f, ensure_ascii=False, indent=2)
+            json.dump(data, f, ensure_ascii=False, indent=2)
 
         # 下載 ZIP
         zip_url = "https://plvr.land.moi.gov.tw//Download?type=zip&fileName=lvr_landcsv.zip"
@@ -85,17 +86,17 @@ def fetch_latest_notice():
             f.write(response.content)
 
         log_info("✅ 成功更新公告")
-        return {
-            "message": "✅ 成功更新公告",
-            "json_path": json_path,
-            "zip_path": zip_path,
-            "content": parsed
-        }
+        return success_response(data)
 
     except Exception as e:
         trace_id = generate_trace_id()
         log_error(ErrorCode.UNKNOWN_ERROR.value, str(e), trace_id)
-        raise HTTPException(status_code=500, detail=f"下載發生錯誤：{str(e)}") from e
+        return error_response(
+            error_code=ErrorCode.UNKNOWN_ERROR.value,
+            message="資料抓取失敗，請稍後再試",
+            trace_id=trace_id,
+            status_code=500
+        )
 
     finally:
         if driver:
