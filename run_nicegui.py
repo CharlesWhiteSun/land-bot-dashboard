@@ -44,4 +44,4 @@ with ui.row().style('''
 render_footer()
 
 # 執行應用
-ui.run(title='🏡 房價分析儀表板', dark=True, show=False)
+ui.run(title='🏡 房價分析儀表板', dark=True, show=False, port=8080)

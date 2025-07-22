@@ -6,8 +6,8 @@ from typing import Dict, Tuple
 
 # 檔案位置設定
 DATA_DIR = os.path.join("api", "data", "real_estate", "raw")
-DATA_FILE = os.path.join(DATA_DIR, "fetch_options_route.json")
-HASH_FILE = os.path.join(DATA_DIR, "fetch_options_route.hash")
+DATA_FILE = os.path.join(DATA_DIR, "latest_notice.json")
+HASH_FILE = os.path.join(DATA_DIR, "latest_notice.hash")
 INIT_FLAG_FILE = os.path.join(DATA_DIR, ".init_done")
 
 # 確保資料夾存在
@@ -60,7 +60,7 @@ def check_data(new_data: Dict) -> Tuple[bool, str]:
         save_data(new_data)
         write_current_hash(new_hash)
         mark_initialized()
-        return True, "系統首次啟動，已初始化資料"
+        return (True, "系統首次啟動，已初始化資料")
     
     old_hash = read_previous_hash()
 
@@ -70,5 +70,5 @@ def check_data(new_data: Dict) -> Tuple[bool, str]:
         write_current_hash(new_hash)
         return True, "資料內容有更新，已重新儲存"
     
-    return False, "資料未變動，無需更新"
+    return (False, "資料未變動，無需更新")
         
