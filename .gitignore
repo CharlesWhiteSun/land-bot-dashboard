@@ -7,3 +7,4 @@ ngui/preprocessing/cleaned
 
 # 忽略該副檔名
 *.pyc
+*.sqlite
