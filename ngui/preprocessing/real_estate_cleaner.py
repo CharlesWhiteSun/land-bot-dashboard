@@ -1,6 +1,8 @@
+import csv
 import json
 import os
 import pandas as pd
+import re
 import shutil
 from typing import Callable
 
@@ -64,10 +66,10 @@ def get_house_type(diff_year):
 
 
 def format_row(row, filename, idx=None, folder=None):
-    trade_object = row['交易標的']
-    building_type = row['建物型態']
-    prefix_trade_object = str(trade_object).split('(', maxsplit=1)[0]
-    prefix_building_type = str(building_type).split('(', maxsplit=1)[0]
+    trade_object = str(row['交易標的'])
+    building_type = str(row['建物型態'])
+    prefix_trade_object = trade_object.split('(', maxsplit=1)[0]
+    prefix_building_type = building_type.split('(', maxsplit=1)[0]
 
     try:
         square_feet = float(row['建物移轉總面積平方公尺'])
@@ -89,30 +91,50 @@ def format_row(row, filename, idx=None, folder=None):
         log_warning(msg)
         print(msg)
 
-    category = house_type = "其他"
-    if '房' in trade_object:
-        category = "房地"
-    elif '土' in trade_object:
-        category = house_type = "土地"
-    elif '車' in trade_object:
-        category = house_type = "車位"
+    try:
+        category = house_type = "其他"
+        if '房' in trade_object:
+            category = "房地"
+        elif '土' in trade_object:
+            category = house_type = "土地"
+        elif '車' in trade_object:
+            category = house_type = "車位"
+    except Exception as e:
+        msg = f"Folder[{folder}] File[{filename}:{idx}] Error converting 分類: {e}"
+        log_warning(msg)
+        print(msg)
 
-    parking_space = "無"
-    if '車' in trade_object:
-        parking_space = "有"
+    try:
+        parking_space = "無"
+        if '車' in trade_object:
+            parking_space = "有"
+    except Exception as e:
+        msg = f"Folder[{folder}] File[{filename}:{idx}] Error converting 停車位: {e}"
+        log_warning(msg)
+        print(msg)
 
-    elevator = "無"
-    if '有電梯' in building_type:
-        elevator = "有"
+    try:
+        elevator = "無"
+        if '有電梯' in building_type:
+            elevator = "有"
+    except Exception as e:
+        msg = f"Folder[{folder}] File[{filename}:{idx}] Error converting 電梯: {e}"
+        log_warning(msg)
+        print(msg)
 
     trade_date, trade_year, trade_month, trade_day = "", "", "", ""
     try:
-        trade = str(row['交易年月日']).strip()
-        if trade.isdigit() and len(trade) >= 6:
-            trade_day = trade[-2:].zfill(2)
-            trade_month = trade[-4:-2].zfill(2)
-            trade_year = str(int(trade[:-4]) + 1911)
-            trade_date = f"{trade_year}{trade_month}{trade_day}"
+        trade_row = row['交易年月日']
+        if pd.notna(trade_row):
+            trade_str = str(row['交易年月日']).strip()
+            match = re.match(r"(\d+)", trade_str)
+            if match:
+                trade = match.group(1)
+                if trade.isdigit() and len(trade) >= 6:
+                    trade_day = trade[-2:].zfill(2)
+                    trade_month = trade[-4:-2].zfill(2)
+                    trade_year = str(int(trade[:-4]) + 1911)
+                    trade_date = f"{trade_year}{trade_month}{trade_day}"
     except Exception as e:
         msg = f"Folder[{folder}] File[{filename}:{idx}] Error processing date 交易年月日=[{row['交易年月日']}], error: {e}"
         log_warning(msg)
@@ -121,14 +143,16 @@ def format_row(row, filename, idx=None, folder=None):
     build_date = ""
     try:
         build_raw = row['建築完成年月']
-        # 轉成 int 再轉回字串，確保格式正確
         if pd.notna(build_raw):
-            build = str(int(float(build_raw)))
-            if len(build) >= 6:
-                build_day = build[-2:].zfill(2)
-                build_month = build[-4:-2].zfill(2)
-                build_year = str(int(build[:-4]) + 1911)
-                build_date = f"{build_year}{build_month}{build_day}"
+            build_str = str(row['建築完成年月']).strip()
+            match = re.match(r"(\d+)", build_str)
+            if match:
+                build = match.group(1)
+                if build.isdigit() and len(build) >= 6:
+                    build_day = build[-2:].zfill(2)
+                    build_month = build[-4:-2].zfill(2)
+                    build_year = str(int(build[:-4]) + 1911)
+                    build_date = f"{build_year}{build_month}{build_day}"
     except Exception as e:
         msg = f"Folder[{folder}] File[{filename}:{idx}] Error processing date 建築完成年月=[{row['建築完成年月']}], error: {e}"
         log_warning(msg)
@@ -166,7 +190,20 @@ def clean_real_estate_csv_files_in_dir(directory: str):
         file_path = os.path.join(directory, filename)
         try:
             # 跳過第二列（英文標題）
-            df = pd.read_csv(file_path, encoding='utf-8', skiprows=[1])
+            df = pd.read_csv(
+                file_path, 
+                encoding='utf-8', 
+                skiprows=[1], 
+                on_bad_lines='skip', 
+                quoting=csv.QUOTE_NONE,
+                engine='python',
+                quotechar='"',
+                escapechar='\\',
+            )
+
+            # 欄位名稱兼容處理
+            if '車位移轉總面積(平方公尺)' in df.columns:
+                df = df.rename(columns={'車位移轉總面積(平方公尺)': '車位移轉總面積平方公尺'})
 
             columns_to_keep = [
                 '鄉鎮市區', '交易標的', '交易年月日', '建物型態', '主要用途',

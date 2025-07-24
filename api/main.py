@@ -17,7 +17,9 @@ scheduler = BackgroundScheduler()
 
 def cron_h2m0():
     log_info("📅 排程任務執行：每日 AM 02:00 任務已觸發")
-    fetch_func()
+
+    # fetch_func()
+    
     print("📅 每日排程：AM 02:00 任務已執行")
 
 @asynccontextmanager
@@ -25,7 +27,7 @@ async def _lifespan(_: FastAPI):
     print("⚡ 伺服器啟動，執行一次性任務")
 
     # fetch_func()
-    apply_function_to_real_estate_dirs(clean_real_estate_csv_files_in_dir)
+    # apply_function_to_real_estate_dirs(clean_real_estate_csv_files_in_dir)
 
     log_info("⚡ FastAPI 伺服器啟動，一次性任務已執行完成")
 
