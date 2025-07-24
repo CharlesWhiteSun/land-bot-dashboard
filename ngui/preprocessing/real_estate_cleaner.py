@@ -1,10 +1,10 @@
 import json
 import os
-import shutil
 import pandas as pd
-from datetime import datetime
+import shutil
 from typing import Callable
 
+from utils.logger import log_warning
 
 def remove_irrelevant_csv_files(directory: str):
     """
@@ -46,11 +46,156 @@ def remove_irrelevant_csv_files(directory: str):
 
     # 結果輸出
     if removed_files:
-        print("✅ 已刪除以下檔案：")
         for f in removed_files:
-            print(f"  - {f}")
+            print(f"✅已刪除以下檔案：{f}")
     else:
-        print("✅ 沒有檔案需要刪除。")
+        print("☑️沒有檔案需要刪除。")
+
+
+def get_house_type(diff_year):
+    if diff_year <= 3:
+        return "新屋"
+    elif diff_year <= 10:
+        return "新古屋"
+    elif diff_year <= 20:
+        return "中古屋"
+    else:
+        return "老屋"
+
+
+def format_row(row, filename, idx=None, folder=None):
+    trade_object = row['交易標的']
+    building_type = row['建物型態']
+    prefix_trade_object = str(trade_object).split('(', maxsplit=1)[0]
+    prefix_building_type = str(building_type).split('(', maxsplit=1)[0]
+
+    try:
+        square_feet = float(row['建物移轉總面積平方公尺'])
+        ping = 0.0
+        if square_feet > 0.0:
+            ping = round(square_feet / 3.305785, 2)
+    except Exception as e:
+        msg = f"Folder[{folder}] File[{filename}:{idx}] Error converting 建物坪數: {e}"
+        log_warning(msg)
+        print(msg)
+        
+    try:
+        parking_space_square_feet = float(row['車位移轉總面積平方公尺'])
+        car_ping = 0.0
+        if parking_space_square_feet > 0.0:
+            car_ping = round(parking_space_square_feet / 3.305785, 2)
+    except Exception as e:
+        msg = f"Folder[{folder}] File[{filename}:{idx}] Error converting 車位坪數: {e}"
+        log_warning(msg)
+        print(msg)
+
+    category = house_type = "其他"
+    if '房' in trade_object:
+        category = "房地"
+    elif '土' in trade_object:
+        category = house_type = "土地"
+    elif '車' in trade_object:
+        category = house_type = "車位"
+
+    parking_space = "無"
+    if '車' in trade_object:
+        parking_space = "有"
+
+    elevator = "無"
+    if '有電梯' in building_type:
+        elevator = "有"
+
+    trade_date, trade_year, trade_month, trade_day = "", "", "", ""
+    try:
+        trade = str(row['交易年月日']).strip()
+        if trade.isdigit() and len(trade) >= 6:
+            trade_day = trade[-2:].zfill(2)
+            trade_month = trade[-4:-2].zfill(2)
+            trade_year = str(int(trade[:-4]) + 1911)
+            trade_date = f"{trade_year}{trade_month}{trade_day}"
+    except Exception as e:
+        msg = f"Folder[{folder}] File[{filename}:{idx}] Error processing date 交易年月日=[{row['交易年月日']}], error: {e}"
+        log_warning(msg)
+        print(msg)
+
+    build_date = ""
+    try:
+        build_raw = row['建築完成年月']
+        # 轉成 int 再轉回字串，確保格式正確
+        if pd.notna(build_raw):
+            build = str(int(float(build_raw)))
+            if len(build) >= 6:
+                build_day = build[-2:].zfill(2)
+                build_month = build[-4:-2].zfill(2)
+                build_year = str(int(build[:-4]) + 1911)
+                build_date = f"{build_year}{build_month}{build_day}"
+    except Exception as e:
+        msg = f"Folder[{folder}] File[{filename}:{idx}] Error processing date 建築完成年月=[{row['建築完成年月']}], error: {e}"
+        log_warning(msg)
+        print(msg)
+
+    house_age = ""
+    house_type = "預售屋"
+    if not filename.endswith('b.csv'):
+        try:
+            if build_date != "":
+                trade_dt = pd.to_datetime(trade_date, format='%Y%m%d', errors='coerce')
+                build_dt = pd.to_datetime(build_date, format='%Y%m%d', errors='coerce')
+                diff_days = (trade_dt - build_dt).days
+                if diff_days >= 0:
+                    diff_year = round((diff_days / 365.25), 1)
+                    house_age = str(diff_year)
+                    house_type = get_house_type(diff_year)
+        except Exception as e:
+            msg = f"Folder[{folder}] File[{filename}:{idx}] Error calculating house age: {e}"
+            log_warning(msg)
+            print(msg)
+
+    return pd.Series([prefix_trade_object, prefix_building_type, ping, car_ping, 
+                    category, parking_space, elevator, trade_date, trade_year, trade_month,
+                    trade_day, build_date, house_age, house_type])
+
+
+def clean_real_estate_csv_files_in_dir(directory: str):
+    done_base_dir = os.path.join("ngui", "preprocessing", "cleaned")
+    directory_name = os.path.basename(directory)
+    done_dir = os.path.join(done_base_dir, directory_name)
+    os.makedirs(done_dir, exist_ok=True)
+
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        try:
+            # 跳過第二列（英文標題）
+            df = pd.read_csv(file_path, encoding='utf-8', skiprows=[1])
+
+            columns_to_keep = [
+                '鄉鎮市區', '交易標的', '交易年月日', '建物型態', '主要用途',
+                '建築完成年月', '建物移轉總面積平方公尺', '總價元', 
+                '車位移轉總面積平方公尺', '車位總價元',
+            ]
+            df_cleaned = df.loc[:, columns_to_keep].copy()
+
+            df_cleaned[['交易標的', '建物型態', '建物坪數', '車位坪數', '分類',
+                        '停車位', '電梯', '交易年月日', '交易年', '交易月',
+                        '交易日', '建築完成年月', '房齡', '屋況']] = \
+                    df_cleaned.apply(
+                        lambda row, filename=file_path, folder=directory_name: \
+                            format_row(row, filename=filename, idx=row.name, folder=folder),
+                        axis=1
+                    )
+
+            cleaned_path = os.path.join(directory, filename.replace('.csv', '_cleaned.csv'))
+            df_cleaned.to_csv(cleaned_path, index=False, encoding='utf-8')
+            print(f"資料清洗完成，已另存為 {cleaned_path}")
+
+            # 搬移清洗完畢檔案到 done 資料夾
+            shutil.move(cleaned_path, os.path.join(done_dir, filename.replace('.csv', '_cleaned.csv')))
+            print(f"清洗完畢檔案已搬移到 {os.path.join(done_dir, filename.replace('.csv', '_cleaned.csv'))}")
+
+        except Exception as e:
+            msg = f"清洗失敗 {directory_name}/{filename}: {e}"
+            log_warning(msg)
+            print(msg)
 
 
 def apply_function_to_real_estate_dirs(func: Callable[[str], None]):
@@ -73,108 +218,3 @@ def apply_function_to_real_estate_dirs(func: Callable[[str], None]):
         folder_path = os.path.join(base_dir, folder_name)
         if os.path.exists(folder_path):
             func(folder_path)
-
-
-def process_real_estate_data(input_dir: str, output_dir: str, archive_dir: str):
-    os.makedirs(output_dir, exist_ok=True)
-    os.makedirs(archive_dir, exist_ok=True)
-
-    # 欄位保留清單（中文）
-    required_columns = [
-        "鄉鎮市區", "交易年月日", "建物型態", "主要用途", "總價元",
-        "單價元平方公尺", "車位類別", "車位總價元", "車位移轉總面積平方公尺",
-        "建築完成年月", "建物移轉總面積平方公尺", "移轉層次", "總樓層數", "電梯", "交易標的"
-    ]
-
-    for filename in os.listdir(input_dir):
-        if not filename.endswith(".csv"):
-            continue
-
-        filepath = os.path.join(input_dir, filename)
-
-        try:
-            df = pd.read_csv(filepath, header=0, encoding="utf-8")
-
-            # 只保留第一行中文欄位
-            if df.columns[0] != "鄉鎮市區":
-                df.columns = df.iloc[0]
-                df = df[1:]
-
-            # 🔧 檢查並補齊缺少欄位
-            for col in required_columns:
-                if col not in df.columns:
-                    df[col] = pd.NA  # 或用 np.nan 也可以
-
-            # 清除其他欄位，只保留指定欄位
-            df = df[required_columns].copy()
-
-            # 時間欄位處理
-            df["交易年月日"] = pd.to_datetime(df["交易年月日"], format="%Y%m%d", errors='coerce')
-            df["交易年"] = df["交易年月日"].dt.year
-            df["交易月"] = df["交易年月日"].dt.month
-            df["交易日"] = df["交易年月日"].dt.day
-            df["年月"] = df["交易年月日"].dt.to_period("M").astype(str)
-
-            # 數值欄位轉換
-            for col in ["總價元", "單價元平方公尺", "車位總價元", "車位移轉總面積平方公尺", "建物移轉總面積平方公尺"]:
-                df[col] = pd.to_numeric(df[col], errors="coerce")
-
-            # 車位單價
-            df["車位單價"] = df.apply(
-                lambda x: x["車位總價元"] / x["車位移轉總面積平方公尺"]
-                if x["車位移轉總面積平方公尺"] and x["車位移轉總面積平方公尺"] > 0 else None,
-                axis=1
-            )
-
-            # 建築完成日轉換
-            def parse_build_date(val):
-                try:
-                    val = str(int(float(val)))
-                    if len(val) == 7:
-                        year = int(val[:3]) + 1911
-                        month = int(val[3:5])
-                        day = int(val[5:])
-                    elif len(val) == 6:
-                        year = int(val[:3]) + 1911
-                        month = int(val[3:5])
-                        day = 1
-                    else:
-                        return pd.NaT
-                    return datetime(year, month, day)
-                except:
-                    return pd.NaT
-
-            df["建築完成日"] = df["建築完成年月"].apply(parse_build_date)
-            df["屋齡"] = df.apply(
-                lambda row: row["交易年月日"].year - row["建築完成日"].year
-                if pd.notnull(row["建築完成日"]) and pd.notnull(row["交易年月日"]) else None,
-                axis=1
-            )
-
-            # 交易標的分類
-            def classify_target(val):
-                if isinstance(val, str):
-                    if "土地" in val and "建物" in val:
-                        return "房地"
-                    elif "土地" in val:
-                        return "土地"
-                    elif "建物" in val:
-                        return "建物"
-                return "其他"
-
-            df["交易標的分類"] = df["交易標的"].apply(classify_target)
-
-            # 儲存清洗後的檔案
-            cleaned_filename = f"cleaned_{filename}"
-            df.to_csv(os.path.join(output_dir, cleaned_filename), index=False, encoding="utf-8-sig")
-
-            # 搬移原始檔案
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            archive_subdir = os.path.join(archive_dir, f"archived_{timestamp}")
-            os.makedirs(archive_subdir, exist_ok=True)
-            shutil.move(filepath, os.path.join(archive_subdir, filename))
-
-            print(f"✅ 已處理並清洗：{filename}")
-
-        except Exception as e:
-            print(f"⚠️ 無法處理 {filename}：{e}")

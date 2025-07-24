@@ -25,6 +25,7 @@ async def _lifespan(_: FastAPI):
     print("⚡ 伺服器啟動，執行一次性任務")
 
     # fetch_func()
+    apply_function_to_real_estate_dirs(clean_real_estate_csv_files_in_dir)
 
     log_info("⚡ FastAPI 伺服器啟動，一次性任務已執行完成")
 
