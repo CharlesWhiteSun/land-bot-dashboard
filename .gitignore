@@ -3,6 +3,8 @@ __pycache__/
 .pytest_cache/
 data/
 logs/
+ngui/preprocessing/cleaned
 
 # 忽略該副檔名
 *.pyc
+*.sqlite

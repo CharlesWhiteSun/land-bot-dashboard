@@ -1,18 +1,18 @@
-import traceback
 import os
 import json
-
-from enums.error_code import ErrorCode
+from bs4 import BeautifulSoup
 from fastapi import APIRouter, HTTPException
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup
+
+from enums.error_code import ErrorCode
 from utils.logger import log_error
 from utils.trace import generate_trace_id
 from utils.response_helper import success_response, error_response
+
 
 router = APIRouter()
 
@@ -44,8 +44,7 @@ def save_or_update_data(new_data: dict) -> bool:
     return updated
 
 
-@router.get("/fetch_options")
-async def fetch_options():
+def fetch_options_and_save() -> dict:
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
@@ -56,20 +55,25 @@ async def fetch_options():
         driver = webdriver.Chrome(options=chrome_options)
         driver.get("https://plvr.land.moi.gov.tw/DownloadOpenData")
 
-        history_tab = WebDriverWait(driver, 10).until(
+        history_tab = WebDriverWait(driver, 10, poll_frequency=0.25).until(
             EC.element_to_be_clickable(
-                (By.CSS_SELECTOR,
-                 'a.btndl[aria-controls="tab_opendata_history_content"]')))
+                (By.CSS_SELECTOR, 'a.btndl[aria-controls="tab_opendata_history_content"]')))
         history_tab.click()
 
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 10, poll_frequency=0.25).until(
             EC.presence_of_element_located((By.ID, "historySeason_id")))
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
         select_element = soup.find("select", {"id": "historySeason_id"})
         if not select_element:
-            raise HTTPException(status_code=404,
-                                detail="找不到 historySeason_id 元素")
+            trace_id = generate_trace_id()
+            msg = 'Selenium 抓取失敗'
+            log_error(ErrorCode.UNKNOWN_ERROR.value, msg)
+            return {
+                "success": False,
+                "trace_id": trace_id,
+                "error": msg
+            }
 
         result = {
             "historySeason_id": {
@@ -80,22 +84,41 @@ async def fetch_options():
         }
 
         updated = save_or_update_data(result)
-
-        return success_response({
-            "historySeason_id": result["historySeason_id"],
+        return {
+            "success": True,
+            "data": result["historySeason_id"],
             "updated": updated
-        })
+        }
 
     except Exception as e:
         trace_id = generate_trace_id()
-        log_error(ErrorCode.UNKNOWN_ERROR.value, f"Selenium 抓取失敗：{str(e)}", "")
-        return error_response(
-            error_code=ErrorCode.UNKNOWN_ERROR.value,
-            message="資料抓取失敗，請稍後再試",
-            trace_id=trace_id,
-            status_code=500
-        )
+        log_error(ErrorCode.UNKNOWN_ERROR.value, f"Selenium 抓取失敗：{str(e)}", trace_id)
+        return {
+            "success": False,
+            "trace_id": trace_id,
+            "error": str(e)
+        }
 
     finally:
         if driver:
             driver.quit()
+
+
+@router.get("/fetch_options")
+async def fetch_options():
+
+    result = fetch_options_and_save()
+
+    if result["success"]:
+        return success_response({
+            "historySeason_id": result["data"],
+            "updated": result["updated"]
+        })
+    
+    return error_response(
+        error_code=ErrorCode.UNKNOWN_ERROR.value,
+        message="資料抓取失敗，請稍後再試",
+        trace_id=result["trace_id"],
+        status_code=500
+    )
+        
