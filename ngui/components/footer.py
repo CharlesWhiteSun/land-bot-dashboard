@@ -14,4 +14,4 @@ def render_footer():
         width: 100%;
     '''):
         
-        ui.label(f'Copyright © {year_text} Charles. All rights reserved.')
+        ui.label(f'Copyright © {year_text} Charles(charleswhitesun@gmail.com). All rights reserved.')

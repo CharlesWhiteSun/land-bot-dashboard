@@ -1,5 +1,5 @@
 from nicegui import ui
-from ngui.components.main import render_main, render_data_analysis
+from ngui.components.main_area import render_main, render_data_analysis
 
 
 def render_sidebar():
