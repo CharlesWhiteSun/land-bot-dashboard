@@ -1,7 +1,7 @@
 import datetime
 from nicegui import ui
 
-from ngui.components.main_chart import *
+from ngui.components.main_chart_func import *
 from ngui.components.main_sql import query_city_data
 
 

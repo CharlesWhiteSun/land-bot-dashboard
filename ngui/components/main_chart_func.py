@@ -7,10 +7,15 @@ def create_price_distribution_chart(df: pd.DataFrame):
 
     fig = px.scatter(
         df,
+        template="plotly_dark",
         title="價格分佈圖",
         x="建物坪數",
         y="建物總價萬元",
         labels={"建物坪數": "面積(坪)", "建物總價萬元": "總價(萬元)"},
         hover_data=hover_cols,
+        color="屋況",
+        opacity=0.8,
+        render_mode='webgl',  # 加入 WebGL 模式
     )
+    fig.update_traces(marker=dict(size=5))
     return fig
