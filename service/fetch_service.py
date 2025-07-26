@@ -262,10 +262,4 @@ def fetch_func():
 
     # 移除最新、歷史資料中不需要分析的檔案
     apply_function_to_real_estate_dirs(remove_irrelevant_csv_files)
-
-    # 清洗最新、歷史資料中的 CSV 檔案
-    apply_function_to_real_estate_dirs(clean_real_estate_csv_files_in_dir)
-
-    # 之後資料清洗完也要考慮把舊資料夾移除，只留分析好的資料
-    # 之後資料清洗完也要考慮把舊資料夾移除，只留分析好的資料
-    # 之後資料清洗完也要考慮把舊資料夾移除，只留分析好的資料
+    
