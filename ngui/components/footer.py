@@ -13,4 +13,5 @@ def render_footer():
         justify-content: center;
         width: 100%;
     '''):
+        
         ui.label(f'Copyright © {year_text} Charles. All rights reserved.')
