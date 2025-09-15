@@ -1,20 +1,33 @@
 from nicegui import ui
+from ngui.components.countdown_button import CountdownButton
+from ngui.components.main_area import *
+
 
 def render_sidebar():
-    with ui.left_drawer().style('''
+    with ui.left_drawer(fixed=True).props('width=230').style('''
         background-color: #454851; 
         padding: 1rem;
     '''):
+        
         ui.label('📊 功能選單').style('''
-            font-size: 1rem; 
+            font-size: 1.3rem; 
             font-weight: 600; 
             color: white;
-            margin-bottom: 0.75rem;
         ''')
 
-        with ui.column().style('''
-            gap: 0.5rem;
-        '''):
-            ui.button('首　　頁', icon='home', color='#00120B', on_click=lambda: ui.notify('你在首頁', position='top', timeout=2000)).style('width: 100%;')
-            ui.button('更新資料', icon='download', color='#00120B', on_click=lambda: ui.notify('準備下載資料...', position='top', timeout=2000)).style('width: 100%;')
-            ui.button('資料分析', icon='analytics', color='#00120B', on_click=lambda: ui.notify('即將進入資料分析...', position='top', timeout=2000)).style('width: 100%;')
+        with ui.column().classes('w-[100%] h-screen items-center').style('gap:0.75rem'):
+            CountdownButton('首　　頁',
+                            icon='home',
+                            color='#00120B',
+                            on_click=render_main,
+                            style_fmt='width: 85%;',)
+            CountdownButton('資料分佈',
+                            icon='analytics',
+                            color='#00120B',
+                            on_click=render_data_distribution,
+                            style_fmt='width: 85%;',)
+            CountdownButton('資料趨勢',
+                            icon='analytics',
+                            color='#00120B',
+                            on_click=render_data_trends,
+                            style_fmt='width: 85%;',)
