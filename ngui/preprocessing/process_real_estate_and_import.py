@@ -179,6 +179,7 @@ CITY_CODE_MAP = {
 # ➤ 預設路徑
 RAW_ROOT = os.path.join("api", "data", "real_estate", "raw")
 DB_PATH = os.path.join("ngui", "database", "real_estate.sqlite")
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 def get_city_name(filename: str) -> str:
     match = re.match(r"([a-z])_lvr_land_[ab]\.csv", filename.lower())

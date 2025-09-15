@@ -32,25 +32,56 @@ def show_home():
 
 def show_data_analysis():
     main_content.clear()
-    render_data_analysis()
+    with main_content:
+        render_data_analysis()
 
-# 樣式與結構
+# 畫面組成
 render_header()
-render_sidebar()
 
-# 修改 sidebar 的 callback
-with ui.left_drawer().style('background-color: #454851; padding: 1rem;'):
+# 儲存 sidebar 引用物件
+sidebar = ui.left_drawer().props('show-if-above').style('background-color: #454851; padding: 1rem;')
+
+with sidebar:
     ui.label('📊 功能選單').style('font-size: 1rem; font-weight: 600; color: white; margin-bottom: 0.75rem;')
     with ui.column().style('gap: 0.5rem;'):
-        ui.button('首　　頁', icon='home', color='#00120B', on_click=show_home).style('width: 100%;')
-        ui.button('更新資料', icon='download', color='#00120B', on_click=lambda: ui.notify('準備下載資料...', position='top')).style('width: 100%;')
-        ui.button('資料分析', icon='analytics', color='#00120B', on_click=show_data_analysis).style('width: 100%;')
+        ui.button('首　　頁', icon='home', color='white', on_click=show_home).style('width: 100%;')
+        ui.button('更新資料', icon='download', color='white', on_click=lambda: ui.notify('準備下載資料...', position='top')).style('width: 100%;')
+        ui.button('資料分析', icon='analytics', color='white', on_click=show_data_analysis).style('width: 100%;')
 
-# 主內容畫面
 show_home()
-
-# Footer
 render_footer()
 
-# 啟動
-ui.run(title='🏡 房價分析儀表板', dark=True, show=False, port=8080)
+# 新增右上角按鈕切換 sidebar
+def toggle_sidebar():
+    # 嘗試用 sidebar.toggle()，如果存在
+    try:
+        sidebar.toggle()
+    except Exception as e:
+        # fallback：使用 props 改變 model-value
+        try:
+            # 檢查目前 props 是否有 model-value
+            mv = sidebar.props_dict.get('model-value', None)
+        except AttributeError:
+            mv = None
+        # 如果有 model-value，就反轉它
+        if mv is not None:
+            sidebar.props(f'model-value={str(not mv).lower()}')
+            sidebar.update()
+        else:
+            # 如果沒這兩者可用，就使用 hide/show 嘗試
+            try:
+                sidebar.hide()
+            except:
+                sidebar.show()
+
+ui.button(icon='menu', on_click=toggle_sidebar) \
+    .props('flat round dense') \
+    .style('position: fixed; top: 1rem; right: 1rem; z-index: 9999; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);')
+
+ui.run(
+    title='🏡 房價分析儀表板',
+    reload=False,
+    dark=False,
+    show=False,
+    port=8080,
+)

@@ -9,16 +9,16 @@ DB_PATH = 'ngui/database/real_estate.sqlite'
 
 def query_avg_price(trade_object, year, house_type):
     conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
 
     sql = '''
-        SELECT 交易年月日, AVG(總價元) as avg_price
-        FROM '臺北市_不動產買賣'
-        WHERE '交易標的' = ? 
-            AND '年度' = ? 
-            AND '屋況' = ?
-        GROUP BY 交易年月日
-        ORDER BY 交易年月日
+        SELECT `交易年月日`, AVG(`總價元`) as avg_price
+        FROM `基隆`
+        WHERE 1=1
+            AND `交易標的` = ? 
+            AND `交易年` = ? 
+            AND `屋況` = ?
+        GROUP BY `交易年月日`
+        ORDER BY `交易年月日`
     '''
     df = pd.read_sql_query(sql, conn, params=(trade_object, year, house_type))
     conn.close()
@@ -30,38 +30,41 @@ def render_data_analysis():
 
     with container:
         ui.label('📈 房價資料分析').style('font-size: 1.25rem; font-weight: bold;')
+        LABEL_TEXT_STYLE = 'label-color=black'
 
-        # 篩選條件
+        # ➤ 搜尋欄位
         with ui.row():
-            city_select = ui.select(
+            trade_object_select = ui.select(
                 ['房地', '土地', '車位'],
                 label='交易標的'
-            ).classes('w-48')
+            ).classes('w-48').props(LABEL_TEXT_STYLE)
 
             year_select = ui.select(
-                [str(y) for y in range(101, 115)],
+                [str(y) for y in range(2012, 2026)],
                 label='年度'
-            ).classes('w-48')
+            ).classes('w-48').props(LABEL_TEXT_STYLE)
 
-            quarter_select = ui.select(
+            house_type_select = ui.select(
                 ['新屋', '新古屋', '中古屋', '老屋', '預售屋'],
                 label='屋況'
-            ).classes('w-48')
+            ).classes('w-48').props(LABEL_TEXT_STYLE)
 
-        # 查詢按鈕與圖表容器
+        # ➤ 圖表區塊
         chart_container = ui.column().classes('w-full')
 
+        # ➤ 查詢與繪圖邏輯
         def refresh_chart():
-            quarter_map = {'第1季': 'S1', '第2季': 'S2', '第3季': 'S3', '第4季': 'S4'}
-            quarter_code = quarter_map.get(quarter_select.value)
-
-            if not all([city_select.value, year_select.value, quarter_code]):
+            if not all([trade_object_select.value, year_select.value, house_type_select.value]):
                 chart_container.clear()
                 with chart_container:
-                    ui.label('請完整選取城市、年度與季別').style('color: red;')
+                    ui.label('請完整選取交易標的、年度與屋況').style('color: red;')
                 return
 
-            df = query_avg_price(city_select.value, year_select.value, f"{year_select.value}{quarter_code}")
+            df = query_avg_price(
+                trade_object_select.value,
+                year_select.value,
+                house_type_select.value
+            )
 
             chart_container.clear()
             if df.empty:
@@ -70,9 +73,14 @@ def render_data_analysis():
                 return
 
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=df['交易年月日'], y=df['avg_price'], mode='lines+markers', name='平均總價'))
+            fig.add_trace(go.Scatter(
+                x=df['交易年月日'],
+                y=df['avg_price'],
+                mode='lines+markers',
+                name='平均總價'
+            ))
             fig.update_layout(
-                title=f'{city_select.value} {year_select.value} 年 {quarter_select.value} 平均總價走勢',
+                title=f'{trade_object_select.value} {year_select.value} 年 {house_type_select.value} 平均總價走勢',
                 xaxis_title='交易日期',
                 yaxis_title='平均總價 (元)',
                 template='plotly_white',
@@ -82,7 +90,10 @@ def render_data_analysis():
             with chart_container:
                 ui.plotly(fig)
 
+        # ➤ 查詢按鈕
         ui.button('搜尋', icon='search', on_click=refresh_chart).classes('mt-2 bg-green-700 text-white')
-        chart_container  # 先保留空容器
+
+        # ➤ 空的圖表容器佔位
+        chart_container
 
     return container
