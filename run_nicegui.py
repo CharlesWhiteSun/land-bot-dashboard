@@ -1,4 +1,6 @@
-from nicegui import ui
+from nicegui import ui, app
+from ip_blacklist import IPBlacklistMiddleware
+
 from ngui.components.header import render_header
 from ngui.components.sidebar import render_sidebar
 from ngui.components.footer import render_footer
@@ -53,22 +55,17 @@ render_footer()
 
 # 新增右上角按鈕切換 sidebar
 def toggle_sidebar():
-    # 嘗試用 sidebar.toggle()，如果存在
     try:
         sidebar.toggle()
-    except Exception as e:
-        # fallback：使用 props 改變 model-value
+    except Exception:
         try:
-            # 檢查目前 props 是否有 model-value
             mv = sidebar.props_dict.get('model-value', None)
         except AttributeError:
             mv = None
-        # 如果有 model-value，就反轉它
         if mv is not None:
             sidebar.props(f'model-value={str(not mv).lower()}')
             sidebar.update()
         else:
-            # 如果沒這兩者可用，就使用 hide/show 嘗試
             try:
                 sidebar.hide()
             except:
@@ -77,6 +74,9 @@ def toggle_sidebar():
 ui.button(icon='menu', on_click=toggle_sidebar) \
     .props('flat round dense') \
     .style('position: fixed; top: 1rem; right: 1rem; z-index: 9999; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);')
+
+# 掛載 IP 黑名單中介軟體
+app.add_middleware(IPBlacklistMiddleware)
 
 ui.run(
     title='🏡 房價分析儀表板',
