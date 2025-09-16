@@ -2,8 +2,10 @@ import sqlite3
 import pandas as pd
 from contextlib import closing
 
-def query_city_data(year, city, building_type=None, house_status=None) -> pd.DataFrame:
-    with closing(sqlite3.connect('ngui/database/real_estate.sqlite')) as conn:
+DB_PATH = 'ngui/database/real_estate.sqlite'
+
+def query_distribution_data(year, city, building_type=None, house_status=None) -> pd.DataFrame:
+    with closing(sqlite3.connect(DB_PATH)) as conn:
         query = f"""
             SELECT * 
             FROM '{city}'
@@ -28,4 +30,22 @@ def query_city_data(year, city, building_type=None, house_status=None) -> pd.Dat
             params.append(house_status)
 
         df = pd.read_sql_query(query, conn, params=params)
+        return df
+    
+def query_avg_price(city: str, trade_object: str, year: str, house_type: str) -> pd.DataFrame:
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        sql = f'''
+            SELECT 
+                SUBSTR(`交易年月日`, 1, 4) || '-' || SUBSTR(`交易年月日`, 5, 2) as ym,
+                ROUND(AVG(`總價元`) / 10000.0, 1) as avg_price_million
+            FROM `{city}`
+            WHERE 1=1
+                AND `交易標的` = ?
+                AND `交易年` = ?
+                AND `屋況` = ?
+            GROUP BY ym
+            ORDER BY ym
+        '''
+        params = (trade_object, year, house_type)
+        df = pd.read_sql_query(sql, conn, params=params)
         return df
