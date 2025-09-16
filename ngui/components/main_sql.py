@@ -32,7 +32,8 @@ def query_distribution_data(year, city, building_type=None, house_status=None) -
         df = pd.read_sql_query(query, conn, params=params)
         return df
     
-def query_avg_price(city: str, trade_object: str, year: str, house_type: str) -> pd.DataFrame:
+
+def query_avg_price(city: str, trade_object: str | None, year: str, house_type: str | None) -> pd.DataFrame:
     with closing(sqlite3.connect(DB_PATH)) as conn:
         sql = f'''
             SELECT 
@@ -40,12 +41,54 @@ def query_avg_price(city: str, trade_object: str, year: str, house_type: str) ->
                 ROUND(AVG(`總價元`) / 10000.0, 1) as avg_price_million
             FROM `{city}`
             WHERE 1=1
-                AND `交易標的` = ?
                 AND `交易年` = ?
-                AND `屋況` = ?
+        '''
+        params = [year]
+
+        if trade_object:
+            sql += " AND `交易標的` = ?"
+            params.append(trade_object)
+
+        if house_type:
+            sql += " AND `屋況` = ?"
+            params.append(house_type)
+
+        sql += '''
             GROUP BY ym
             ORDER BY ym
         '''
-        params = (trade_object, year, house_type)
+
         df = pd.read_sql_query(sql, conn, params=params)
         return df
+
+
+
+def query_multi_year_price(city: str, trade_object: str | None, years: list[str], house_type: str | None) -> pd.DataFrame:
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        placeholders = ','.join(['?'] * len(years))
+        sql = f'''
+            SELECT 
+                SUBSTR(`交易年月日`, 1, 4) as year,
+                CAST(SUBSTR(`交易年月日`, 5, 2) AS INTEGER) as month,
+                ROUND(AVG(`總價元`) / 10000.0, 1) as avg_price_million
+            FROM `{city}`
+            WHERE 1=1
+                AND `交易年` IN ({placeholders})
+        '''
+        params = years
+
+        if trade_object:  # 有選擇交易標的時才加條件
+            sql += " AND `交易標的` = ?"
+            params.append(trade_object)
+
+        if house_type:  # 有選擇屋況時才加條件
+            sql += " AND `屋況` = ?"
+            params.append(house_type)
+
+        sql += '''
+            GROUP BY year, month
+            ORDER BY year DESC, month
+        '''
+        df = pd.read_sql_query(sql, conn, params=params)
+        return df
+

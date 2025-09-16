@@ -48,6 +48,8 @@ YEAR_SELECTIONS = [str(year) for year in range(CURRENT_YEAR, 2010, -1)] + ['~201
 TYPE_SELECTIONS = ["房地", "土地"]
 HOUSE_STATUS_SELECTIONS = ["預售屋", "新屋", "新古屋", "中古屋", "老屋"]
 
+
+# 查詢價格分佈圖
 def render_data_distribution():
     MAIN_CONTENT.clear()
     CHART_CONTAINER.clear()
@@ -134,6 +136,8 @@ def render_data_distribution():
 
             NotifyDisableButton('搜尋', icon='search', on_click=on_search_click)
 
+
+# 查詢單一年份房價走勢
 def render_data_trends():
     MAIN_CONTENT.clear()
     CHART_CONTAINER.clear()
@@ -177,7 +181,7 @@ def render_data_trends():
 
                 # 檢查年份與縣市是否有填
                 if not year_value and not city_value:
-                    ui.notify('[成交年份] 與 [縣市] 皆為必要搜尋條件', type='warning', position='top')
+                    ui.notify('[縣市] 與 [成交年份] 皆為必要搜尋條件', type='warning', position='top')
                     return False
                 if not year_value:
                     ui.notify('[成交年份] 為必要搜尋條件', type='warning', position='top')
@@ -212,6 +216,87 @@ def render_data_trends():
             status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None, clearable=True).classes('w-36')
 
             NotifyDisableButton('搜尋', icon='search', on_click=on_search_click)
+
+
+# 查詢多年份房價走勢
+def render_multi_year_trends():
+    MAIN_CONTENT.clear()
+    CHART_CONTAINER.clear()
+
+    with MAIN_CONTENT:
+        ui.label('📊 多年份房價走勢圖').style('font-size: 1.3rem; font-weight: bold;')
+
+        # 第一列：區域 + 縣市
+        with ui.row().style('gap: 12px; flex-wrap: wrap; align-items: center;'):
+            ui.html('<span style="color:red">*</span>區域：')
+            area_select = ui.select(list(AREA_GROUPS.keys()), value=None).classes('w-48')
+
+            ui.html('<span style="color:red">*</span>縣市：')
+            city_select = ui.select([], value=None).classes('w-48')
+            city_select.disable()
+
+        def on_area_change():
+            selected_area = area_select.value
+            if selected_area in AREA_GROUPS:
+                city_select.options = AREA_GROUPS[selected_area]
+                city_select.value = None
+                city_select.enable()
+            else:
+                city_select.options = []
+                city_select.value = None
+                city_select.disable()
+            city_select.update()
+
+        area_select.on('update:model-value', on_area_change)
+
+        # 第二列：年份（必要欄位）
+        with ui.row().style('gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 12px;'):
+            ui.html('<span style="color:red">*</span>成交年份：')
+            year_checkboxes = {}
+            for year in YEAR_SELECTIONS[:-1]:
+                year_checkboxes[year] = ui.checkbox(str(year)).classes('w-20')
+
+
+        # 第三列：交易標的 + 屋況
+        with ui.row().style('gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 12px;'):
+            ui.label('交易標的：')
+            trade_type_select = ui.select(TYPE_SELECTIONS, value=None).classes('w-36')
+            ui.label('屋況：')
+            house_status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None).classes('w-36')
+
+            def on_search():
+                with CHART_CONTAINER:
+                    CHART_CONTAINER.clear()
+                    city = city_select.value
+                    trade_type = trade_type_select.value
+                    selected_years = [year for year, checkbox in year_checkboxes.items() if checkbox.value]
+                    house_status = house_status_select.value
+
+                    # 驗證必要欄位
+                    if not selected_years and not city:
+                        ui.notify('[縣市] 與 [成交年份] 皆為必要搜尋條件', type='warning', position='top')
+                        return False
+                    if not city:
+                        ui.notify('請選擇縣市', type='warning')
+                        return
+                    if not selected_years:
+                        ui.notify('請至少選擇 2 個年份', type='warning')
+                        return
+
+                    try:
+                        df = query_multi_year_price(city, trade_type, selected_years, house_status)
+                    except Exception as e:
+                        ui.notify(f'查詢失敗：{e}', type='negative')
+                        return
+
+                    if df.empty:
+                        ui.notify('查無資料', type='warning')
+                        return
+
+                    fig = create_multi_year_trend_chart(df, city, trade_type, house_status)
+                    ui.plotly(fig).classes('w-full')
+
+            ui.button('搜尋', icon='search', on_click=on_search).classes('bg-green-700 text-white')
 
 
 # 主內容畫面渲染

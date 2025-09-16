@@ -51,6 +51,11 @@ def render_sidebar():
                             color='#00120B',
                             on_click=render_data_trends,
                             style_fmt='width: 85%;',)
+            CountdownButton('複合年度趨勢',
+                            icon='analytics',
+                            color='#00120B',
+                            on_click=render_multi_year_trends,
+                            style_fmt='width: 85%;',)
             
     # ⏹️ Sidebar Toggle 按鈕
     ui.button(icon='menu', on_click=toggle_sidebar) \

@@ -22,6 +22,7 @@ def create_distribution_chart(df: pd.DataFrame):
     fig.update_traces(marker=dict(size=5))
     return fig
 
+
 def create_price_trend_chart(df: pd.DataFrame, city: str, trade_type: str, year: str, house_status: str):
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -37,5 +38,33 @@ def create_price_trend_chart(df: pd.DataFrame, city: str, trade_type: str, year:
         xaxis_type='category',
         template='plotly_dark',
         height=450
+    )
+    return fig
+
+
+def create_multi_year_trend_chart(df: pd.DataFrame, city: str, trade_type: str, house_status: str):
+    fig = go.Figure()
+
+    # 以年份排序（新到舊），然後畫圖
+    for year, year_df in df.groupby('year'):
+        year_df['year'] = int(year)  # 確保是 int
+
+    # 排序年份：從大到小（新→舊）
+    for year in sorted(df['year'].unique(), reverse=True):
+        year_df = df[df['year'] == year]
+        fig.add_trace(go.Scatter(
+            x=year_df['month'],
+            y=year_df['avg_price_million'],
+            mode='lines+markers',
+            name=str(year)
+        ))
+
+    fig.update_layout(
+        title=f"{city} - {trade_type or '全部'} - {house_status or '全部'} 多年份趨勢（月對齊）",
+        xaxis_title='月份',
+        yaxis_title='平均總價 (萬元)',
+        xaxis=dict(tickmode='linear', tick0=1, dtick=1),
+        template='plotly_dark',
+        height=500
     )
     return fig
