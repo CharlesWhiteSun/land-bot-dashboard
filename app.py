@@ -3,8 +3,8 @@
 # apply_clean_and_import_file()
 # fetch_func()
 
-
-from nicegui import ui
+from nicegui import ui, app
+from ip_blacklist import IPBlacklistMiddleware
 from enums.constants import SystemType
 from ngui.components.footer import render_footer
 from ngui.components.header import render_header
@@ -15,6 +15,9 @@ render_header()
 render_sidebar()
 render_main()
 render_footer()
+
+# 掛載 IP 黑名單中介軟體
+app.add_middleware(IPBlacklistMiddleware)
 
 ui.run(
     title=f"{SystemType.TITLE_LOGO.value} {SystemType.TITLE_NAME.value}",
