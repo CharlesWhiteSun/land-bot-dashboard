@@ -179,6 +179,7 @@ CITY_CODE_MAP = {
 # ➤ 預設路徑
 RAW_ROOT = os.path.join("api", "data", "real_estate", "raw")
 DB_PATH = os.path.join("ngui", "database", "real_estate.sqlite")
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 def get_city_name(filename: str) -> str:
     match = re.match(r"([a-z])_lvr_land_[ab]\.csv", filename.lower())
@@ -266,7 +267,7 @@ def clean_and_import_file(file_path: str, season_folder: str, conn: sqlite3.Conn
         print(msg)
 
 
-def apply_function_to_real_estate_dirs():
+def apply_clean_and_import_file():
     conn = sqlite3.connect(DB_PATH)
 
     # 掃描 raw 資料夾下所有子資料夾
@@ -280,7 +281,3 @@ def apply_function_to_real_estate_dirs():
                 clean_and_import_file(os.path.join(folder_path, file), folder, conn)
 
     conn.commit()
-    conn.close()
-
-if __name__ == "__main__":
-    apply_function_to_real_estate_dirs()

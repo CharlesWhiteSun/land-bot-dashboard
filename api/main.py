@@ -5,7 +5,7 @@ from api.routes.real_estate import fetch_latest_notice_route
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from ngui.preprocessing.real_estate_cleaner import *
+from ngui.preprocessing.process_real_estate_and_import import *
 from utils.logger import log_info
 from utils.response_helper import success_response, error_response
 from service.fetch_service import *
@@ -25,9 +25,9 @@ def cron_h2m0():
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
     print("⚡ 伺服器啟動，執行一次性任務")
-
-    # fetch_func()
-    # apply_function_to_real_estate_dirs(clean_real_estate_csv_files_in_dir)
+    
+    fetch_func() # 執行下載地產資料的動作
+    apply_clean_and_import_file() # 加入資料清洗與匯入資料庫的邏輯
 
     log_info("⚡ FastAPI 伺服器啟動，一次性任務已執行完成")
 

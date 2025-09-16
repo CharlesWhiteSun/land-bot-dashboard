@@ -4,6 +4,8 @@ __pycache__/
 data/
 logs/
 ngui/preprocessing/cleaned
+.venv
+.vscode
 
 # 忽略該副檔名
 *.pyc
