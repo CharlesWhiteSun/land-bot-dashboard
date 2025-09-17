@@ -412,49 +412,50 @@ def render_multi_year_trends():
             for year in YEAR_SELECTIONS[:-1]:
                 year_checkboxes[year] = ui.checkbox(str(year)).classes('w-20')
 
+        def on_search():
+            with MAIN_CONTENT:
+                city = city_select.value
+                trade_type = trade_type_select.value
+                selected_years = [year for year, checkbox in year_checkboxes.items() if checkbox.value]
+                house_status = house_status_select.value
+
+                # 驗證必要欄位
+                if not selected_years and not city:
+                    ui.notify('[縣市] 與 [成交年份] 皆為必要搜尋條件', type='warning', position='top')
+                    return False
+                if not city:
+                    ui.notify('請選擇縣市', type='warning')
+                    return
+                if len(selected_years) < 2:
+                    ui.notify('請至少選擇 2 個成交年份選項', type='warning')
+                    return
+                if len(selected_years) < 2 or len(selected_years) > 5:
+                    ui.notify('成交年份選項請選擇 5 個(含)以內', type='warning')
+                    return
+
+                try:
+                    df = query_multi_year_price(city, trade_type, selected_years, house_status)
+                except Exception as e:
+                    ui.notify('查詢失敗，請反應給站長協助處理', type='negative', position='top')
+                    log_warning(f'查詢 [複合年度比較趨勢圖] 失敗：{str(e)}')
+                    return
+
+                if df.empty:
+                    ui.notify('查無資料', type='warning')
+                    return
+
+                CHART_CONTAINER.clear()
+                fig = create_multi_year_trend_chart(df, city, trade_type, house_status)
+                with CHART_CONTAINER:
+                    ui.plotly(fig).classes('w-full')
 
         # 第三列：交易標的 + 屋況
         with ui.row().style(ROW_STYLE_NORMAL):
             ui.label('交易標的：')
-            trade_type_select = ui.select(TYPE_SELECTIONS, value=None).classes('w-36')
+            trade_type_select = ui.select(TYPE_SELECTIONS, value=None, clearable=True).classes('w-36')
+
             ui.label('屋況：')
-            house_status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None).classes('w-36')
-
-            def on_search():
-                with CHART_CONTAINER:
-                    city = city_select.value
-                    trade_type = trade_type_select.value
-                    selected_years = [year for year, checkbox in year_checkboxes.items() if checkbox.value]
-                    house_status = house_status_select.value
-
-                    # 驗證必要欄位
-                    if not selected_years and not city:
-                        ui.notify('[縣市] 與 [成交年份] 皆為必要搜尋條件', type='warning', position='top')
-                        return False
-                    if not city:
-                        ui.notify('請選擇縣市', type='warning')
-                        return
-                    if len(selected_years) < 2:
-                        ui.notify('請至少選擇 2 個成交年份選項', type='warning')
-                        return
-                    if len(selected_years) < 2 or len(selected_years) > 5:
-                        ui.notify('成交年份選項請選擇 5 個(含)以內', type='warning')
-                        return
-
-                    try:
-                        df = query_multi_year_price(city, trade_type, selected_years, house_status)
-                    except Exception as e:
-                        ui.notify('查詢失敗，請反應給站長協助處理', type='negative', position='top')
-                        log_warning(f'查詢 [複合年度比較趨勢圖] 失敗：{str(e)}')
-                        return
-
-                    if df.empty:
-                        ui.notify('查無資料', type='warning')
-                        return
-
-                    CHART_CONTAINER.clear()
-                    fig = create_multi_year_trend_chart(df, city, trade_type, house_status)
-                    ui.plotly(fig).classes('w-full')
+            house_status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None, clearable=True).classes('w-36')
 
             CountdownButton('搜尋', icon='search', on_click=on_search)
 

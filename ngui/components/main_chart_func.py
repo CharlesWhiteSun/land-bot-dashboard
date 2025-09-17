@@ -20,6 +20,7 @@ def create_distribution_chart(df: pd.DataFrame):
         render_mode='webgl',  # 加入 WebGL 模式
     )
     fig.update_traces(marker=dict(size=5))
+    fig.update_layout(height=600)
     return fig
 
 def create_3d_distribution_chart(df: pd.DataFrame):
@@ -59,8 +60,17 @@ def create_price_trend_chart(df: pd.DataFrame, city: str, trade_type: str, year:
         mode='lines+markers',
         name='平均總價 (萬元)'
     ))
+
+    title_parts = [city]
+    if trade_type:
+        title_parts.append(trade_type)
+    title_parts.append(f"{year} 年")
+    if house_status:
+        title_parts.append(house_status)
+    title_text = " - ".join(title_parts) + " 平均總價走勢"
+
     fig.update_layout(
-        title=f"{city} - {trade_type} - {year} 年 - {house_status} 平均總價走勢",
+        title=title_text,
         xaxis_title='交易年月',
         yaxis_title='平均總價 (萬元)',
         xaxis_type='category',
@@ -87,8 +97,16 @@ def create_multi_year_trend_chart(df: pd.DataFrame, city: str, trade_type: str, 
             name=str(year)
         ))
 
+    # 動態組裝 title
+    title_parts = [city]
+    if trade_type:
+        title_parts.append(trade_type)
+    if house_status:
+        title_parts.append(house_status)
+    title_text = " - ".join(title_parts) + " 多年份趨勢（月對齊）"
+
     fig.update_layout(
-        title=f"{city} - {trade_type or '全部'} - {house_status or '全部'} 多年份趨勢（月對齊）",
+        title=title_text,
         xaxis_title='月份',
         yaxis_title='平均總價 (萬元)',
         xaxis=dict(tickmode='linear', tick0=1, dtick=1),
