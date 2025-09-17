@@ -26,8 +26,8 @@ def cron_h2m0():
 async def _lifespan(_: FastAPI):
     print("⚡ 伺服器啟動，執行一次性任務")
     
-    fetch_func() # 執行下載地產資料的動作
-    apply_clean_and_import_file() # 加入資料清洗與匯入資料庫的邏輯
+    # fetch_func() # 執行下載地產資料的動作
+    # apply_clean_and_import_file() # 加入資料清洗與匯入資料庫的邏輯
 
     log_info("⚡ FastAPI 伺服器啟動，一次性任務已執行完成")
 

@@ -24,38 +24,44 @@ def toggle_sidebar():
 def render_sidebar():
     global sidebar  # 讓 toggle_sidebar 能抓到這個變數
 
-    with ui.left_drawer(fixed=True).props('width=230').style('''
+    with ui.left_drawer(fixed=True).props('width=240').style('''
         background-color: #454851; 
         padding: 1rem;
     ''') as sidebar:
         
-        ui.label('📊 功能選單').style('''
+        ui.label('📊 Function Menu').style('''
             font-size: 1.3rem; 
             font-weight: 600; 
             color: white;
         ''')
 
-        with ui.column().classes('w-[100%] h-screen items-center').style('gap:0.75rem'):
-            CountdownButton('首　　頁',
+        with ui.column().classes('w-[100%] h-screen items-left').style('gap:0.75rem'):
+            style_fmt_ctx = 'min-width: max-content; padding: 0 1rem;'
+            CountdownButton('Home Page',
                             icon='home',
                             color='#00120B',
                             on_click=render_main,
-                            style_fmt='width: 85%;',)
-            CountdownButton('資料分佈',
+                            style_fmt=style_fmt_ctx,)
+            CountdownButton('不動產分佈圖',
                             icon='analytics',
                             color='#00120B',
                             on_click=render_data_distribution,
-                            style_fmt='width: 85%;',)
-            CountdownButton('資料趨勢',
+                            style_fmt=style_fmt_ctx,)
+            CountdownButton('多縣市 3D 分佈圖',
+                            icon='analytics',
+                            color='#00120B',
+                            on_click=render_multi_city_3d,
+                            style_fmt=style_fmt_ctx,)
+            CountdownButton('不動產年度趨勢圖',
                             icon='analytics',
                             color='#00120B',
                             on_click=render_data_trends,
-                            style_fmt='width: 85%;',)
-            CountdownButton('複合年度趨勢',
+                            style_fmt=style_fmt_ctx,)
+            CountdownButton('複合年度比較趨勢圖',
                             icon='analytics',
                             color='#00120B',
                             on_click=render_multi_year_trends,
-                            style_fmt='width: 85%;',)
+                            style_fmt=style_fmt_ctx,)
             
     # ⏹️ Sidebar Toggle 按鈕
     ui.button(icon='menu', on_click=toggle_sidebar) \

@@ -1,10 +1,10 @@
-# from service.fetch_service import fetch_func
-# from ngui.preprocessing.process_real_estate_and_import import apply_clean_and_import_file
-# apply_clean_and_import_file()
-# fetch_func()
+from service.fetch_service import fetch_func
+from ngui.preprocessing.process_real_estate_and_import import apply_clean_and_import_file
+
+fetch_func()
+apply_clean_and_import_file()
 
 from nicegui import ui, app
-from ip_blacklist import IPBlacklistMiddleware
 from enums.constants import SystemType
 from ngui.components.footer import render_footer
 from ngui.components.header import render_header
@@ -17,6 +17,7 @@ render_main()
 render_footer()
 
 # 掛載 IP 黑名單中介軟體
+from ip_blacklist import IPBlacklistMiddleware
 app.add_middleware(IPBlacklistMiddleware)
 
 ui.run(

@@ -74,7 +74,12 @@ class IPBlacklistMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         ip = request.client.host
+        path = request.url.path
         now = time.time()
+
+        # 忽略靜態資源 (例如 /_nicegui/, /static/, /favicon.ico 等)
+        if path.startswith('/_nicegui') or path.startswith('/static') or path.endswith('.ico'):
+            return await call_next(request)
 
         # 檢查 IP 是否被封鎖中
         if ip in self.ip_blocked_until:

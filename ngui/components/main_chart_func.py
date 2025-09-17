@@ -22,6 +22,34 @@ def create_distribution_chart(df: pd.DataFrame):
     fig.update_traces(marker=dict(size=5))
     return fig
 
+def create_3d_distribution_chart(df: pd.DataFrame):
+    import plotly.express as px
+
+    hover_cols = ["縣市", "鄉鎮市區", "建物型態", "主要用途", "屋況"]
+    df[hover_cols] = df[hover_cols].fillna("")
+
+    fig = px.scatter_3d(
+        df,
+        x="建物坪數",
+        y="房齡",
+        z="建物總價萬元",
+        color="縣市",
+        hover_data=hover_cols,
+        template="plotly_dark",
+        title="多縣市 3D 價格分佈圖",
+        opacity=1,
+    )
+    fig.update_traces(marker=dict(size=4))
+    fig.update_layout(
+        height=1000,
+        scene=dict(
+            xaxis_title="建物坪數",
+            yaxis_title="房齡（年）",
+            zaxis_title="建物總價萬元"
+        )
+    )
+    return fig
+
 
 def create_price_trend_chart(df: pd.DataFrame, city: str, trade_type: str, year: str, house_status: str):
     fig = go.Figure()

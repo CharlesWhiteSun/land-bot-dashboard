@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import shutil
 import sqlite3
 import re
 import csv
@@ -276,8 +277,35 @@ def apply_clean_and_import_file():
         if not os.path.isdir(folder_path):
             continue
 
+        # 檢查資料夾內是否還有檔案，如果沒有就刪除資料夾
+        if not os.listdir(folder_path):
+            print(f"資料夾 {folder_path} 為空，將被刪除")
+            os.rmdir(folder_path)
+            continue
+
+        # 準備移動檔案的目標資料夾
+        old_folder_path = os.path.join("api", "data", "real_estate", "old", folder)
+        os.makedirs(old_folder_path, exist_ok=True)
+
+        # 處理該資料夾下的所有檔案
         for file in os.listdir(folder_path):
             if file.endswith(".csv"):
-                clean_and_import_file(os.path.join(folder_path, file), folder, conn)
+                try:
+                    # 處理檔案
+                    clean_and_import_file(os.path.join(folder_path, file), folder, conn)
+
+                    # 成功後將檔案移動到 'old' 資料夾
+                    shutil.move(os.path.join(folder_path, file), os.path.join(old_folder_path, file))
+                    print(f"✅ 檔案 {file} 處理完成，已移動到 {old_folder_path}")
+
+                except Exception as e:
+                    # 如果處理檔案過程中出現錯誤，則跳過此檔案並繼續處理其他檔案
+                    print(f"❌ 處理檔案 {file} 時出錯，錯誤：{e}")
+                    continue
+
+        # 檢查資料夾內是否還有檔案，並刪除空資料夾
+        if not os.listdir(folder_path):
+            print(f"資料夾 {folder_path} 內已無檔案，將被刪除")
+            os.rmdir(folder_path)
 
     conn.commit()
