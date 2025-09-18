@@ -30,7 +30,7 @@ def render_main():
 
         ui.label('🗺️ Instructions').style(MAIN_LABEL_STYLE)
         ui.markdown('''
-            - 點選 Menu, Charts 可收放頁面
+            - Menu, Charts 可收放子選單；右上按鈕可收放 Side Bar 選單
             - 有任何問題，請先確認資料來源是否正確
             - 其他建議或需求，請聯繫開發者
             - 後續若有其他資料如成交車位等查詢需求，可再視狀況更新
@@ -72,13 +72,13 @@ MAIN_CTX_STYLE = """
     font-size: 1rem;
 """
 
-# 查詢不動產分佈圖
+# 縣市價坪分佈圖
 def render_data_distribution():
     MAIN_CONTENT.clear()
     CHART_CONTAINER.clear()
    
     with MAIN_CONTENT:
-        with ui.expansion('不動產分佈圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
+        with ui.expansion('縣市價坪分佈圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             ui.markdown('''
                 - 這個區域讓您根據成交年份、縣市、分類與屋況查詢不同的不動產價格分佈
                 - 成交年份與縣市是必要的查詢條件，請確保選擇後再進行查詢
@@ -94,7 +94,7 @@ def render_data_distribution():
                 </div>
             ''')
 
-            ui.markdown(''' 
+            ui.markdown('''
             - 若查詢結果為空，可能是因為：
                 <div style="margin-left: 20px;">
                 選擇的條件過於嚴格，導致無符合資料<br>
@@ -206,13 +206,13 @@ def render_data_distribution():
         ui.separator()
 
 
-# 多縣市 3D 分佈圖
+# 多縣市 3D 價坪分佈圖
 def render_multi_city_3d():
     MAIN_CONTENT.clear()
     CHART_CONTAINER.clear()
 
     with MAIN_CONTENT:
-        with ui.expansion('多縣市 3D 分佈圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
+        with ui.expansion('多縣市 3D 價坪分佈圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             ui.markdown('''
                 - 選擇多個縣市與單一年份，將顯示建物坪數、總價與房齡的 3D 分佈圖
                 - 成交年份與縣市(2~3)是必要的查詢條件，請確保選擇後再進行查詢
@@ -324,20 +324,26 @@ def render_multi_city_3d():
         ui.separator()
 
 
-# 查詢不動產年度趨勢圖
+# 縣市價格年度趨勢圖
 def render_data_trends():
     MAIN_CONTENT.clear()
     CHART_CONTAINER.clear()
 
     with MAIN_CONTENT:
-        with ui.expansion('不動產年度趨勢圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
+        with ui.expansion('縣市價格年度趨勢圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             ui.markdown(''' 
             - 這個區域讓您根據成交年份、縣市、分類與屋況查詢單一年份的房價走勢
             - 成交年份與縣市是必要的查詢條件，請確保選擇後再進行查詢
             - 在選擇分類(如房地或土地)和屋況(如預售屋、新屋、中古屋等)後，系統將顯示相關資料
             ''')
+            
             ui.markdown(''' 
-            - 若查詢結果為空，可能是因為該條件下尚未有成交紀錄
+            - 若查詢結果為空，可能是因為：
+                <div style="margin-left: 20px;">
+                選擇的條件過於嚴格，導致無符合資料<br>
+                部分縣市在該年份下無成交紀錄<br>
+                所選屋況或交易標的尚無統計資料
+                </div>
             ''')
 
         with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
@@ -417,20 +423,26 @@ def render_data_trends():
             ui.separator()
 
 
-# 查詢複合年度比較趨勢圖
+# 多年度價格趨勢圖
 def render_multi_year_trends():
     MAIN_CONTENT.clear()
     CHART_CONTAINER.clear()
 
     with MAIN_CONTENT:
-        with ui.expansion('複合年度比較趨勢圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
+        with ui.expansion('多年度價格趨勢圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             ui.markdown(''' 
             - 這個區域讓您查詢跨年份的房價變化趨勢，協助觀察長期市場走向
             - 成交年份(可選 2~5 個項目)與縣市是必要的查詢條件，請確保選擇後再進行查詢
             - 在選擇分類(如房地或土地)和屋況(如預售屋、新屋、中古屋等)後，系統將顯示相關資料
             ''')
+
             ui.markdown(''' 
-            - 若查詢結果為空，可能是因為該條件下尚未有成交紀錄。
+            - 若查詢結果為空，可能是因為：
+                <div style="margin-left: 20px;">
+                選擇的條件過於嚴格，導致無符合資料<br>
+                部分縣市在該年份下無成交紀錄<br>
+                所選屋況或交易標的尚無統計資料
+                </div>
             ''')
 
         with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
@@ -513,13 +525,13 @@ def render_multi_year_trends():
         ui.separator()
 
 
-# 查詢多縣市屋齡 3D 趨勢圖
+# 多縣市年度 3D 屋齡價格趨勢圖
 def render_3D_multi_year_trends():
     MAIN_CONTENT.clear()
     CHART_CONTAINER.clear()
 
     with MAIN_CONTENT:
-        with ui.expansion('複合年度 3D 趨勢圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
+        with ui.expansion('多縣市年度 3D 屋齡價格趨勢圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             ui.markdown(''' 
             - 這個區域讓您查詢多縣市單一年份中，不同屋齡與平均房價之間的關係，藉由 3D 趨勢圖視覺化呈現
             - 透過比較多個縣市的同年成交資料，可觀察各地屋齡與價格的整體分佈與趨勢變化

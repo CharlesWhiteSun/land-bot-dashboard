@@ -10,7 +10,7 @@ def create_distribution_chart(df: pd.DataFrame):
     fig = px.scatter(
         df,
         template="plotly_dark",
-        title="價格分佈圖",
+        title="縣市價坪分佈圖",
         x="建物坪數",
         y="建物總價萬元",
         labels={"建物坪數": "面積(坪)", "建物總價萬元": "總價(萬元)"},
@@ -38,7 +38,7 @@ def create_3d_distribution_chart(df: pd.DataFrame):
         color="縣市",
         hover_data=hover_cols,
         template="plotly_dark",
-        title="多縣市 3D 價格分佈圖",
+        title="多縣市 3D 價坪分佈圖",
         opacity=1,
     )
     fig.update_traces(marker=dict(size=4))
@@ -63,7 +63,7 @@ def create_price_trend_chart(df: pd.DataFrame, city: str, trade_type: str, year:
     ))
 
     fig.update_layout(
-        title=f"{year} 年 {trade_type or ''} {house_status or ''} 平均總價走勢",
+        title=f"{year} 年 {trade_type or ''} {house_status or ''} 縣市價格年度趨勢圖",
         xaxis_title='交易年月',
         yaxis_title='平均總價 (萬元)',
         xaxis_type='category',
@@ -91,7 +91,7 @@ def create_multi_year_trend_chart(df: pd.DataFrame, city: str, trade_type: str, 
         ))
 
     fig.update_layout(
-        title=f"{year} 年 {trade_type or ''} {house_status or ''} 多年份趨勢（月對齊）",
+        title=f"{trade_type or ''} {house_status or ''} 多年度價格趨勢圖",
         xaxis_title='月份',
         yaxis_title='平均總價 (萬元)',
         xaxis=dict(tickmode='linear', tick0=1, dtick=1),
@@ -108,7 +108,6 @@ def create_single_year_multi_city_trend_chart_3d(df: pd.DataFrame, year: str, tr
     city_to_y = {city: i for i, city in enumerate(cities)}
 
     for city in cities:
-        # ✅ 這行是關鍵，確保繪圖資料照屋齡由小排到大
         city_df = df[df['city'] == city].sort_values('house_age')
 
         fig.add_trace(go.Scatter3d(
@@ -126,15 +125,18 @@ def create_single_year_multi_city_trend_chart_3d(df: pd.DataFrame, year: str, tr
             )
         ))
 
+    range_y = [-1, len(cities)]  # 預設上下各留一格空間
+
     fig.update_layout(
-        title=f"{year} 年 {trade_type or ''} {house_status or ''} 多縣市屋齡 3D 趨勢圖",
+        title=f"{year} 年 {trade_type or ''} {house_status or ''} 多縣市年度 3D 屋齡價格趨勢圖",
         scene=dict(
             xaxis=dict(title='屋齡（年）'),
             yaxis=dict(
                 title='縣市',
                 tickmode='array',
                 tickvals=list(city_to_y.values()),
-                ticktext=list(city_to_y.keys())
+                ticktext=list(city_to_y.keys()),
+                range=range_y
             ),
             zaxis=dict(title='平均總價 (萬元)'),
         ),

@@ -14,8 +14,8 @@ def render_sidebar():
     with ui.left_drawer(fixed=True).props('width=300').style(f'''
         background-color: {SIDE_BG_COLOR}; 
         padding: 1rem;
-    '''):
-
+    ''') as drawer:
+    
         with ui.expansion('Menu', icon='settings', value=True).classes('w-[100%]').style(MAIN_CTX_STYLE):
 
             style_fmt_ctx = 'min-width: max-content;'
@@ -33,31 +33,31 @@ def render_sidebar():
             with ui.expansion('Charts', icon='bar_chart', value=True).classes('w-[100%]').style(MAIN_CTX_STYLE):
                 btn_style = 'min-width: max-content; padding: 0 1rem;'
 
-                CountdownButton('不動產分佈圖',
+                CountdownButton('縣市價坪分佈圖',
                                 icon='analytics',
                                 color=BTN_COLOR,
                                 on_click=render_data_distribution,
                                 style_fmt=btn_style)
 
-                CountdownButton('多縣市 3D 分佈圖',
+                CountdownButton('多縣市 3D 價坪分佈圖',
                                 icon='analytics',
                                 color=BTN_COLOR,
                                 on_click=render_multi_city_3d,
                                 style_fmt=btn_style)
 
-                CountdownButton('不動產年度趨勢圖',
+                CountdownButton('縣市價格年度趨勢圖',
                                 icon='analytics',
                                 color=BTN_COLOR,
                                 on_click=render_data_trends,
                                 style_fmt=btn_style)
 
-                CountdownButton('複合年度比較趨勢圖',
+                CountdownButton('多年度價格趨勢圖',
                                 icon='analytics',
                                 color=BTN_COLOR,
                                 on_click=render_multi_year_trends,
                                 style_fmt=btn_style)
                 
-                CountdownButton('多縣市屋齡 3D 趨勢圖',
+                CountdownButton('多縣市年度 3D 屋齡價格趨勢圖',
                                 icon='analytics',
                                 color=BTN_COLOR,
                                 on_click=render_3D_multi_year_trends,
@@ -66,6 +66,7 @@ def render_sidebar():
     # Sidebar Toggle 按鈕（保持固定）
     ui.button(icon='menu') \
         .props('flat round dense') \
+        .on('click', lambda: drawer.toggle()) \
         .style('''
             position: fixed; 
             top: 1rem; 
