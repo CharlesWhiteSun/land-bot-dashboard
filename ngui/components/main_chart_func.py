@@ -61,16 +61,8 @@ def create_price_trend_chart(df: pd.DataFrame, city: str, trade_type: str, year:
         name='平均總價 (萬元)'
     ))
 
-    title_parts = [city]
-    if trade_type:
-        title_parts.append(trade_type)
-    title_parts.append(f"{year} 年")
-    if house_status:
-        title_parts.append(house_status)
-    title_text = " - ".join(title_parts) + " 平均總價走勢"
-
     fig.update_layout(
-        title=title_text,
+        title=f"{year} 年 {trade_type or ''} {house_status or ''} 平均總價走勢",
         xaxis_title='交易年月',
         yaxis_title='平均總價 (萬元)',
         xaxis_type='category',
@@ -97,16 +89,8 @@ def create_multi_year_trend_chart(df: pd.DataFrame, city: str, trade_type: str, 
             name=str(year)
         ))
 
-    # 動態組裝 title
-    title_parts = [city]
-    if trade_type:
-        title_parts.append(trade_type)
-    if house_status:
-        title_parts.append(house_status)
-    title_text = " - ".join(title_parts) + " 多年份趨勢（月對齊）"
-
     fig.update_layout(
-        title=title_text,
+        title=f"{year} 年 {trade_type or ''} {house_status or ''} 多年份趨勢（月對齊）",
         xaxis_title='月份',
         yaxis_title='平均總價 (萬元)',
         xaxis=dict(tickmode='linear', tick0=1, dtick=1),
@@ -114,3 +98,51 @@ def create_multi_year_trend_chart(df: pd.DataFrame, city: str, trade_type: str, 
         height=500
     )
     return fig
+
+
+def create_single_year_multi_city_trend_chart_3d(df: pd.DataFrame, year: str, trade_type: str, house_status: str):
+    fig = go.Figure()
+
+    # 每個縣市一條線，x軸屋齡，y軸月份（可用月份作為 y 軸區分，但你的需求是 y 軸縣市，這邊用縣市作 y 軸分組，但3D座標無法直接用字串作軸，需轉成類別數字）
+    # 但 Plotly 3D座標只能是數字，無法直接用字串當軸 => 需把縣市轉成數字作為 y 軸，再用 ticktext 顯示名稱
+
+    cities = sorted(df['city'].unique())
+    city_to_y = {city: i for i, city in enumerate(cities)}  # 縣市映射成數字 y 軸
+
+    for city in cities:
+        city_df = df[df['city'] == city]
+        fig.add_trace(go.Scatter3d(
+            x=city_df['house_age'],
+            y=[city_to_y[city]] * len(city_df),
+            z=city_df['avg_price_million'],
+            mode='lines+markers',
+            name=city,
+            line=dict(width=4),
+            marker=dict(size=4),
+            hovertemplate=(
+                f"<b>{city} ({year})</b><br>" +
+                "屋齡: %{x} 年<br>" +
+                "平均總價: %{z} 萬元"
+            )
+        ))
+
+    # 設定 y 軸的 ticktext 與 tickvals，顯示縣市名稱
+    fig.update_layout(
+        title=f"{year} 年 {trade_type or ''} {house_status or ''} 多縣市屋齡 3D 趨勢圖",
+        scene=dict(
+            xaxis=dict(title='屋齡（年）'),
+            yaxis=dict(
+                title='縣市',
+                tickmode='array',
+                tickvals=list(city_to_y.values()),
+                ticktext=list(city_to_y.keys())
+            ),
+            zaxis=dict(title='平均總價 (萬元)'),
+        ),
+        height=700,
+        template='plotly_dark',
+        margin=dict(l=0, r=0, b=0, t=50)
+    )
+
+    return fig
+

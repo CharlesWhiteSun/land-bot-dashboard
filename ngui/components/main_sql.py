@@ -88,7 +88,7 @@ def query_avg_price(city: str, trade_object: str | None, year: str, house_type: 
         sql = f'''
             SELECT 
                 SUBSTR(`交易年月日`, 1, 4) || '-' || SUBSTR(`交易年月日`, 5, 2) as ym,
-                ROUND(AVG(`總價元`) / 10000.0, 1) as avg_price_million
+                AVG(`建物總價萬元`) as avg_price_million
             FROM `{city}`
             WHERE 1=1
                 AND `交易年` = ?
@@ -124,7 +124,7 @@ def query_multi_year_price(city: str, trade_object: str | None, years: list[str]
             SELECT 
                 SUBSTR(`交易年月日`, 1, 4) as year,
                 CAST(SUBSTR(`交易年月日`, 5, 2) AS INTEGER) as month,
-                ROUND(AVG(`總價元`) / 10000.0, 1) as avg_price_million
+                AVG(`建物總價萬元`) as avg_price_million
             FROM `{city}`
             WHERE 1=1
                 AND `交易年` IN ({placeholders})
@@ -149,3 +149,52 @@ def query_multi_year_price(city: str, trade_object: str | None, years: list[str]
         except Exception as e:
             print(f"[SQL] 查詢複合年度比較趨勢圖 Error: {e}")
             return df
+
+
+def query_multi_city_price_with_age(cities: list[str], year: str, trade_object: str | None, house_type: str | None, remove_outliers=False) -> pd.DataFrame:
+    dfs = []
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        for city in cities:
+            sql = f'''
+                SELECT 
+                    '{city}' AS city,
+                    CAST(SUBSTR(`交易年月日`, 5, 2) AS INTEGER) AS month,
+                    CAST(`房齡` AS INTEGER) AS house_age,
+                    AVG(`建物總價萬元`) as avg_price_million
+                FROM `{city}`
+                WHERE `交易年` = ?
+                  AND `房齡` NOT NULL AND `房齡` != '' AND `房齡` != '見其他登記事項'
+            '''
+            params = [year]
+
+            if trade_object:
+                sql += " AND `交易標的` = ?"
+                params.append(trade_object)
+
+            if house_type:
+                sql += " AND `屋況` = ?"
+                params.append(house_type)
+
+            sql += '''
+                GROUP BY month, house_age
+                ORDER BY 房齡, 建物總價萬元
+            '''
+
+            try:
+                df = pd.read_sql_query(sql, conn, params=params)
+
+                if remove_outliers and not df.empty:
+                    quantile_val = 1 - remove_outliers / 100  # 例如 1% -> 0.99
+                    upper_bound = df["avg_price_million"].quantile(quantile_val)
+                    df = df[df["avg_price_million"] <= upper_bound]
+
+                df = df.dropna(subset=['house_age'])
+                df['house_age'] = df['house_age'].astype(int)
+                dfs.append(df)
+            except Exception as e:
+                print(f"[SQL] 查詢屋齡3D趨勢圖錯誤({city}): {e}")
+
+    if dfs:
+        return pd.concat(dfs, ignore_index=True)
+    else:
+        return pd.DataFrame()

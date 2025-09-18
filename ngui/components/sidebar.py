@@ -56,6 +56,12 @@ def render_sidebar():
                                 color=BTN_COLOR,
                                 on_click=render_multi_year_trends,
                                 style_fmt=btn_style)
+                
+                CountdownButton('多縣市屋齡 3D 趨勢圖',
+                                icon='analytics',
+                                color=BTN_COLOR,
+                                on_click=render_3D_multi_year_trends,
+                                style_fmt=btn_style)
 
     # Sidebar Toggle 按鈕（保持固定）
     ui.button(icon='menu') \

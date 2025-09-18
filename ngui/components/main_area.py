@@ -86,7 +86,7 @@ def render_data_distribution():
             ''')
 
         with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
-            # 第一列：區域 + 縣市
+            # 第一列
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.html('<span style="color:red">*</span>區域：')
                 area_select = ui.select(
@@ -113,7 +113,7 @@ def render_data_distribution():
             area_select.on('update:model-value', on_area_change)
 
             # 查詢按鈕
-            def on_search_click() -> bool:
+            async def on_search_click() -> bool:
                 year_value = year_select.value
                 city_value = city_select.value
                 type_value = type_select.value
@@ -153,7 +153,7 @@ def render_data_distribution():
                     ui.plotly(fig).classes('w-full')
                 return True
                 
-            # 第二列：成交年份 + 分類 + 屋況
+            # 第二列
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.html('<span style="color:red">*</span>成交年份：')
                 year_select = ui.select(YEAR_SELECTIONS, value=None).classes('w-36')
@@ -164,19 +164,16 @@ def render_data_distribution():
                 ui.label('屋況：')
                 status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None, clearable=True).classes('w-36')
 
-            # 新增一列：移除邊界值 slider
+            # 第三列
             with ui.row().style(ROW_STYLE_NORMAL):
-                # slider: 最低 0%，最高 10%，步進 1%，預設 0%
                 ui.label('移除價格最高邊界值(%)').style('font-weight: 600; margin-right: 12px;')
                 remove_outliers_slider = ui.slider(min=0, max=10, value=0, step=1).classes('w-72')
-                # 動態顯示滑桿的百分比數字
                 percentage_label = ui.label(f'{remove_outliers_slider.value}%').style('min-width: 30px; text-align: left; margin-left: 8px;')
-
                 def update_label(event):
                     val = event.args  # 直接用 event.args
                     percentage_label.set_text(f'{val}%')
-
                 remove_outliers_slider.on('update:model-value', update_label)
+
                 CountdownButton('搜尋', icon='search', on_click=on_search_click)
 
         ui.separator()
@@ -200,7 +197,7 @@ def render_multi_city_3d():
             ''')
 
         with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
-            # 縣市多選 checkbox
+            # 第一列
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.html('<span style="color:red">*</span>縣市：')
                 city_checkboxes = {}
@@ -214,7 +211,7 @@ def render_multi_city_3d():
                 for city in city_list:
                     city_checkboxes[city] = ui.checkbox(city).classes('w-20')
 
-            # 年份、分類、屋況
+            # 第二列
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.html('<span style="color:red">*</span>成交年份：')
                 year_select = ui.select(YEAR_SELECTIONS[:-1], value=None).classes('w-36')  # 不含 ~2010
@@ -226,7 +223,7 @@ def render_multi_city_3d():
                 status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None, clearable=True).classes('w-36')
 
             # 搜尋按鈕
-            def on_search_click():
+            async def on_search_click():
                 selected_cities = [city for city, checkbox in city_checkboxes.items() if checkbox.value]
                 selected_year = year_select.value
                 type_value = type_select.value
@@ -260,19 +257,18 @@ def render_multi_city_3d():
                     fig = create_3d_distribution_chart(df)
                     ui.plotly(fig).classes('w-full')
 
-            # 新增一列：移除邊界值 slider
+            # 第三列
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.label('移除價格最高邊界值(%)').style('font-weight: 600; margin-right: 12px;')
                 remove_outliers_slider = ui.slider(min=0, max=10, value=0, step=1).classes('w-72')
                 percentage_label = ui.label(f'{remove_outliers_slider.value}%').style(
                     'min-width: 30px; text-align: left; margin-left: 8px;'
                 )
-
                 def update_label(event):
                     val = event.args
                     percentage_label.set_text(f'{val}%')
-
                 remove_outliers_slider.on('update:model-value', update_label)
+
                 CountdownButton('搜尋', icon='search', on_click=on_search_click)
 
         ui.separator()
@@ -295,7 +291,7 @@ def render_data_trends():
             ''')
 
         with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
-            # 第一列：區域 + 縣市
+            # 第一列
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.html('<span style="color:red">*</span>區域：')
                 area_select = ui.select(
@@ -322,7 +318,7 @@ def render_data_trends():
             area_select.on('update:model-value', on_area_change)
             
             # 查詢按鈕
-            def on_search_click():
+            async def on_search_click():
                 city_value = city_select.value
                 year_value = year_select.value
                 trade_type = type_select.value
@@ -355,7 +351,7 @@ def render_data_trends():
                 with CHART_CONTAINER:
                     ui.plotly(fig).classes('w-full')
 
-            # 第二列：成交年份 + 分類 + 屋況
+            # 第二列
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.html('<span style="color:red">*</span>成交年份：')
                 year_select = ui.select(YEAR_SELECTIONS, value=None).classes('w-36')
@@ -367,6 +363,7 @@ def render_data_trends():
                 status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None, clearable=True).classes('w-36')
 
                 CountdownButton('搜尋', icon='search', on_click=on_search_click)
+
             ui.separator()
 
 
@@ -386,8 +383,8 @@ def render_multi_year_trends():
             - 若查詢結果為空，可能是因為該條件下尚未有成交紀錄。
             ''')
 
-        # 第一列：區域 + 縣市
         with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
+            # 第一列
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.html('<span style="color:red">*</span>區域：')
                 area_select = ui.select(list(AREA_GROUPS.keys()), value=None).classes('w-48')
@@ -410,14 +407,14 @@ def render_multi_year_trends():
 
             area_select.on('update:model-value', on_area_change)
 
-            # 第二列：年份（必要欄位）
+            # 第二列
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.html('<span style="color:red">*</span>成交年份：')
                 year_checkboxes = {}
                 for year in YEAR_SELECTIONS[:-1]:
                     year_checkboxes[year] = ui.checkbox(str(year)).classes('w-20')
 
-            def on_search():
+            async def on_search():
                 city = city_select.value
                 trade_type = trade_type_select.value
                 selected_years = [year for year, checkbox in year_checkboxes.items() if checkbox.value]
@@ -428,13 +425,13 @@ def render_multi_year_trends():
                     ui.notify('[縣市] 與 [成交年份] 皆為必要搜尋條件', type='warning', position='top')
                     return False
                 if not city:
-                    ui.notify('請選擇縣市', type='warning')
+                    ui.notify('請選擇縣市', type='warning', position='top')
                     return
                 if len(selected_years) < 2:
-                    ui.notify('請至少選擇 2 個成交年份選項', type='warning')
+                    ui.notify('請至少選擇 2 個成交年份選項', type='warning', position='top')
                     return
                 if len(selected_years) < 2 or len(selected_years) > 5:
-                    ui.notify('成交年份選項請選擇 5 個(含)以內', type='warning')
+                    ui.notify('成交年份選項請選擇 5 個(含)以內', type='warning', position='top')
                     return
 
                 try:
@@ -445,7 +442,7 @@ def render_multi_year_trends():
                     return
 
                 if df.empty:
-                    ui.notify('查無資料', type='warning')
+                    ui.notify('查無資料', type='warning', position='top')
                     return
 
                 CHART_CONTAINER.clear()
@@ -453,7 +450,7 @@ def render_multi_year_trends():
                 with CHART_CONTAINER:
                     ui.plotly(fig).classes('w-full')
 
-            # 第三列：交易標的 + 屋況
+            # 第三列
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.label('交易標的：')
                 trade_type_select = ui.select(TYPE_SELECTIONS, value=None, clearable=True).classes('w-36')
@@ -463,6 +460,99 @@ def render_multi_year_trends():
 
                 CountdownButton('搜尋', icon='search', on_click=on_search)
             
+        ui.separator()
+
+
+# 查詢多縣市屋齡 3D 趨勢圖
+def render_3D_multi_year_trends():
+    MAIN_CONTENT.clear()
+    CHART_CONTAINER.clear()
+
+    with MAIN_CONTENT:
+        with ui.expansion('多縣市屋齡 3D 趨勢圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
+            ui.markdown(''' 
+            - 這個區域讓您查詢跨年份的房價變化趨勢，協助觀察長期市場走向
+            - 成交年份(可選 2~5 個項目)與縣市是必要的查詢條件，請確保選擇後再進行查詢
+            - 在選擇分類(如房地或土地)和屋況(如預售屋、新屋、中古屋等)後，系統將顯示相關資料
+            ''')
+            ui.markdown(''' 
+            - 若查詢結果為空，可能是因為該條件下尚未有成交紀錄。
+            ''')
+
+        with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
+            # 第一列
+            with ui.row().style(ROW_STYLE_NORMAL):
+                ui.html('<span style="color:red">*</span>縣市：')
+                city_checkboxes = {}
+                city_list = [
+                    "臺北", "新北", "基隆", "桃園", "新竹",
+                    "苗栗", "臺中", "南投", "彰化", "雲林",
+                    "嘉義", "臺南", "高雄", "屏東",
+                    "宜蘭", "花蓮", "臺東",
+                    "澎湖", "金門", "連江"
+                ]
+                for city in city_list:
+                    city_checkboxes[city] = ui.checkbox(city).classes('w-20')
+
+            # 第二列
+            with ui.row().style(ROW_STYLE_NORMAL):
+                ui.html('<span style="color:red">*</span>成交年份：')
+                year_select = ui.select(YEAR_SELECTIONS[:-1], value=None).classes('w-48')
+
+                ui.label('交易標的：')
+                trade_type_select = ui.select(TYPE_SELECTIONS, value=None, clearable=True).classes('w-36')
+
+                ui.label('屋況：')
+                house_status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None, clearable=True).classes('w-36')
+
+            async def on_search():
+                selected_year = year_select.value
+                selected_cities = [city for city, cb in city_checkboxes.items() if cb.value]
+                trade_type = trade_type_select.value
+                house_status = house_status_select.value
+                remove_percent = remove_outliers_slider.value / 100
+
+                # 驗證必填條件
+                if not selected_year:
+                    ui.notify('請選擇成交年份', type='warning', position='top')
+                    return
+                if len(selected_cities) < 2:
+                    ui.notify('請至少選擇 2 個縣市', type='warning', position='top')
+                    return
+                if len(selected_cities) > 5:
+                    ui.notify('縣市選擇請勿超過 5 個', type='warning', position='top')
+                    return
+
+                try:
+                    df = query_multi_city_price_with_age(selected_cities, selected_year, trade_type, house_status, remove_percent)
+                except Exception as e:
+                    ui.notify('查詢失敗，請反應給站長協助處理', type='negative', position='top')
+                    log_warning(f'查詢 [單一年份多縣市 3D 趨勢圖] 失敗：{str(e)}')
+                    return
+
+                if df.empty:
+                    ui.notify('查無資料', type='warning', position='top')
+                    return
+
+                CHART_CONTAINER.clear()
+                fig = create_single_year_multi_city_trend_chart_3d(df, selected_year, trade_type, house_status)
+                with CHART_CONTAINER:
+                    ui.plotly(fig).classes('w-full')
+
+            # 第三列
+            with ui.row().style(ROW_STYLE_NORMAL):
+                ui.label('移除價格最高邊界值(%)').style('font-weight: 600; margin-right: 12px;')
+                remove_outliers_slider = ui.slider(min=0, max=10, value=0, step=1).classes('w-72')
+                percentage_label = ui.label(f'{remove_outliers_slider.value}%').style('min-width: 30px; text-align: left; margin-left: 8px;')
+
+                def update_label(event):
+                    val = event.args
+                    percentage_label.set_text(f'{val}%')
+
+                remove_outliers_slider.on('update:model-value', update_label)
+
+                CountdownButton('搜尋', icon='search', on_click=on_search)
+
         ui.separator()
 
 
