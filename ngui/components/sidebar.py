@@ -2,54 +2,58 @@ from nicegui import ui
 from ngui.components.countdown_button import CountdownButton
 from ngui.components.main_area import *
 
+BTN_COLOR = '#00120B'
+SIDE_BG_COLOR = '#454851'
+MAIN_CTX_STYLE = f"""
+    background-color: {SIDE_BG_COLOR};
+    font-size: 1.3rem;
+    font-weight: 600;
+"""
+
 def render_sidebar():
-    with ui.left_drawer(fixed=True).props('width=300').style('''
-        background-color: #454851; 
+    with ui.left_drawer(fixed=True).props('width=300').style(f'''
+        background-color: {SIDE_BG_COLOR}; 
         padding: 1rem;
     '''):
 
-        ui.label('📊 Function Menu').style('''
-            font-size: 1.3rem; 
-            font-weight: 600; 
-            color: white;
-        ''')
+        with ui.expansion('Menu', icon='settings', value=True).classes('w-[100%]').style(MAIN_CTX_STYLE):
 
-        with ui.column().classes('w-[100%] h-screen items-left').style('gap:0.75rem'):
-
-            style_fmt_ctx = 'min-width: max-content; padding: 0 1rem;'
+            style_fmt_ctx = 'min-width: max-content;'
 
             # Home Page 按鈕
             CountdownButton('Home Page',
                             icon='home',
-                            color='#00120B',
+                            color=BTN_COLOR,
                             on_click=render_main,
                             style_fmt=style_fmt_ctx)
 
-            # Charts expansion（代替原本的 toggle + 子按鈕）
-            with ui.expansion('Charts', icon='bar_chart', value=True).classes('w-[100%]'):
+        with ui.column().classes('w-[100%] h-screen items-left').style('gap:0.75rem'):
+
+            # Charts expansion
+            with ui.expansion('Charts', icon='bar_chart', value=True).classes('w-[100%]').style(MAIN_CTX_STYLE):
                 btn_style = 'min-width: max-content; padding: 0 1rem;'
 
                 CountdownButton('不動產分佈圖',
                                 icon='analytics',
-                                color='#00120B',
+                                color=BTN_COLOR,
                                 on_click=render_data_distribution,
                                 style_fmt=btn_style)
 
                 CountdownButton('多縣市 3D 分佈圖',
                                 icon='analytics',
-                                color='#00120B',
+                                color=BTN_COLOR,
                                 on_click=render_multi_city_3d,
                                 style_fmt=btn_style)
 
                 CountdownButton('不動產年度趨勢圖',
                                 icon='analytics',
-                                color='#00120B',
+                                color=BTN_COLOR,
                                 on_click=render_data_trends,
                                 style_fmt=btn_style)
 
                 CountdownButton('複合年度比較趨勢圖',
                                 icon='analytics',
-                                color='#00120B',
+                                color=BTN_COLOR,
                                 on_click=render_multi_year_trends,
                                 style_fmt=btn_style)
 

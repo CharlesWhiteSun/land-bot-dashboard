@@ -8,13 +8,16 @@ from ngui.components.main_sql import *
 from utils.logger import *
 from ngui.components.countdown_button import CountdownButton
 
-MAIN_CONTENT = ui.column().classes('w-full') # 全域主內容容器
+MAIN_CTX_STYLE = 'padding: 1rem; font-size: 1rem;'
+MAIN_LABEL_STYLE = 'font-size: 1.3rem; font-weight: 600;'
+
+MAIN_CONTENT = ui.column().classes('w-full').style(MAIN_CTX_STYLE) # 全域主內容容器
 CHART_CONTAINER = ui.column().classes('w-full items-center')  # 放圖表的區塊
 
 def render_main():
     MAIN_CONTENT.clear()
     with MAIN_CONTENT:
-        ui.label('🏙️ Welcome!').style('font-size: 1.3rem; font-weight: 600;')
+        ui.label('🏙️ Welcome!').style(MAIN_LABEL_STYLE)
         ui.markdown(f'''
             - 歡迎使用 {SystemType.TITLE_NAME.value}
             - 這裡整合、視覺化一些內政部不動產實際資料供應系統的成交案件資料
@@ -25,7 +28,7 @@ def render_main():
         ui.markdown()
 
         ui.separator()
-        ui.label('🗺️ Instructions').style('font-size: 1.3rem; font-weight: 600;')
+        ui.label('🗺️ Instructions').style(MAIN_LABEL_STYLE)
         ui.markdown('''
             - 點選左側選單可切換頁面
             - 有任何問題，請先確認資料來源是否正確
@@ -34,7 +37,7 @@ def render_main():
         ''')
         ui.markdown()
         ui.separator()
-        ui.label('⚠️ Notice').style('font-size: 1.3rem; font-weight: 600;')
+        ui.label('⚠️ Notice').style(MAIN_LABEL_STYLE)
         ui.markdown('''
             - 為維護系統穩定與公平使用，請勿進行以下行為：
               - 大量、頻繁重複查詢以導致系統負載異常
@@ -60,6 +63,10 @@ TYPE_SELECTIONS = ["房地", "土地"]
 HOUSE_STATUS_SELECTIONS = ["預售屋", "新屋", "新古屋", "中古屋", "老屋"]
 
 ROW_STYLE_NORMAL = 'gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 8px;'
+MAIN_CTX_STYLE = """
+    padding: 1rem;
+    font-size: 1rem;
+"""
 
 # 查詢不動產分佈圖
 def render_data_distribution():
@@ -67,7 +74,7 @@ def render_data_distribution():
     CHART_CONTAINER.clear()
    
     with MAIN_CONTENT:
-        with ui.expansion('不動產分佈圖', icon='description', value=True).classes('w-full'):
+        with ui.expansion('不動產分佈圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             ui.markdown('''
                 - 這個區域讓您根據成交年份、縣市、分類與屋況查詢不同的不動產價格分佈
                 - 成交年份與縣市是必要的查詢條件，請確保選擇後再進行查詢
@@ -78,7 +85,7 @@ def render_data_distribution():
                 - 若查詢結果為空，可能是因為該條件下尚未有成交紀錄
             ''')
 
-        with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full'):
+        with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             # 第一列：區域 + 縣市
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.html('<span style="color:red">*</span>區域：')
@@ -181,7 +188,7 @@ def render_multi_city_3d():
     CHART_CONTAINER.clear()
 
     with MAIN_CONTENT:
-        with ui.expansion('多縣市 3D 分佈圖', icon='description', value=True).classes('w-full'):
+        with ui.expansion('多縣市 3D 分佈圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             ui.markdown('''
                 - 選擇多個縣市與單一年份，將顯示建物坪數、總價與房齡的 3D 分佈圖
                 - 成交年份與縣市是必要的查詢條件，請確保選擇後再進行查詢
@@ -192,7 +199,7 @@ def render_multi_city_3d():
                 - 若查詢結果為空，可能是因為該條件下尚未有成交紀錄
             ''')
 
-        with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full'):
+        with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             # 縣市多選 checkbox
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.html('<span style="color:red">*</span>縣市：')
@@ -277,7 +284,7 @@ def render_data_trends():
     CHART_CONTAINER.clear()
 
     with MAIN_CONTENT:
-        with ui.expansion('不動產年度趨勢圖', icon='description', value=True).classes('w-full'):
+        with ui.expansion('不動產年度趨勢圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             ui.markdown(''' 
             - 這個區域讓您根據成交年份、縣市、分類與屋況查詢單一年份的房價走勢
             - 成交年份與縣市是必要的查詢條件，請確保選擇後再進行查詢
@@ -287,7 +294,7 @@ def render_data_trends():
             - 若查詢結果為空，可能是因為該條件下尚未有成交紀錄
             ''')
 
-        with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full'):
+        with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             # 第一列：區域 + 縣市
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.html('<span style="color:red">*</span>區域：')
@@ -369,7 +376,7 @@ def render_multi_year_trends():
     CHART_CONTAINER.clear()
 
     with MAIN_CONTENT:
-        with ui.expansion('複合年度比較趨勢圖', icon='description', value=True).classes('w-full'):
+        with ui.expansion('複合年度比較趨勢圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             ui.markdown(''' 
             - 這個區域讓您查詢跨年份的房價變化趨勢，協助觀察長期市場走向
             - 成交年份(可選 2~5 個項目)與縣市是必要的查詢條件，請確保選擇後再進行查詢
@@ -380,7 +387,7 @@ def render_multi_year_trends():
             ''')
 
         # 第一列：區域 + 縣市
-        with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full'):
+        with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.html('<span style="color:red">*</span>區域：')
                 area_select = ui.select(list(AREA_GROUPS.keys()), value=None).classes('w-48')
