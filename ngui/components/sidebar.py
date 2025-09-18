@@ -11,7 +11,7 @@ MAIN_CTX_STYLE = f"""
 """
 
 def render_sidebar():
-    with ui.left_drawer(fixed=True).props('width=300').style(f'''
+    with ui.left_drawer(fixed=True).props('width=320').style(f'''
         background-color: {SIDE_BG_COLOR}; 
         padding: 1rem;
     ''') as drawer:
