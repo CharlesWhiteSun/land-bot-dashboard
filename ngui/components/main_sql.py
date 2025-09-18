@@ -4,10 +4,20 @@ from contextlib import closing
 
 DB_PATH = 'ngui/database/real_estate.sqlite'
 
-def query_distribution_data(year, city, building_type=None, house_status=None, remove_outliers=False) -> pd.DataFrame:
+def query_distribution_data(
+    year, 
+    city, 
+    building_type=None, 
+    house_status=None, 
+    remove_outliers=False,
+    remove_zero=False,
+    limit_under_100m=False
+) -> pd.DataFrame:
     with closing(sqlite3.connect(DB_PATH)) as conn:
         query = f"""
-            SELECT * 
+            SELECT 
+                *,
+                `建物總價萬元` AS price
             FROM '{city}'
             WHERE 1=1
         """
@@ -31,11 +41,20 @@ def query_distribution_data(year, city, building_type=None, house_status=None, r
 
         try:
             df = pd.read_sql_query(query, conn, params=params)
+            df = df.dropna(subset=['price'])
+
+            df['price'] = pd.to_numeric(df['price'], errors='coerce')
+
+            if remove_zero:
+                df = df[df['price'] > 0]
+
+            if limit_under_100m:
+                df = df[df['price'] < 10000]
 
             if remove_outliers and not df.empty:
                 quantile_val = 1 - remove_outliers / 100  # 例如 1% -> 0.99
-                upper_bound = df["建物總價萬元"].quantile(quantile_val)
-                df = df[df["建物總價萬元"] <= upper_bound]
+                upper_bound = df["price"].quantile(quantile_val)
+                df = df[df["price"] <= upper_bound]
                 
             return df
         except Exception as e:
@@ -43,7 +62,15 @@ def query_distribution_data(year, city, building_type=None, house_status=None, r
             return df
     
 
-def query_multi_city_3d_data(cities: list[str], year: str, type_value=None, status_value=None, remove_outliers=False) -> pd.DataFrame:
+def query_multi_city_3d_data(
+    cities: list[str], 
+    year: str, 
+    type_value=None, 
+    status_value=None, 
+    remove_outliers=False,
+    remove_zero=False,
+    limit_under_100m=False
+) -> pd.DataFrame:
     from contextlib import closing
     import sqlite3
     import pandas as pd
@@ -54,8 +81,9 @@ def query_multi_city_3d_data(cities: list[str], year: str, type_value=None, stat
             query = f"""
                 SELECT 
                     '{city}' as 縣市,
-                    建物坪數, 建物總價萬元, 房齡,
-                    鄉鎮市區, 建物型態, 主要用途, 屋況
+                    建物坪數, 房齡,
+                    鄉鎮市區, 建物型態, 主要用途, 屋況,
+                    `建物總價萬元` AS price
                 FROM "{city}"
                 WHERE 交易年 = ?
             """
@@ -70,10 +98,19 @@ def query_multi_city_3d_data(cities: list[str], year: str, type_value=None, stat
                 params.append(status_value)
 
             df = pd.read_sql_query(query, conn, params=params)
+            df = df.dropna(subset=['price'])
+
+            df['price'] = pd.to_numeric(df['price'], errors='coerce')
+
+            if remove_zero:
+                df = df[df['price'] > 0]
+
+            if limit_under_100m:
+                df = df[df['price'] < 10000]
 
             if remove_outliers and not df.empty:
-                upper_bound = df["建物總價萬元"].quantile(0.99)
-                df = df[df["建物總價萬元"] <= upper_bound]
+                upper_bound = df["price"].quantile(0.99)
+                df = df[df["price"] <= upper_bound]
 
             all_data.append(df)
 
@@ -83,7 +120,12 @@ def query_multi_city_3d_data(cities: list[str], year: str, type_value=None, stat
         return pd.DataFrame()
 
 
-def query_avg_price(city: str, trade_object: str | None, year: str, house_type: str | None) -> pd.DataFrame:
+def query_avg_price(
+    city: str, 
+    trade_object: str | None, 
+    year: str, 
+    house_type: str | None
+) -> pd.DataFrame:
     with closing(sqlite3.connect(DB_PATH)) as conn:
         sql = f'''
             SELECT 
@@ -117,7 +159,12 @@ def query_avg_price(city: str, trade_object: str | None, year: str, house_type: 
             return df
 
 
-def query_multi_year_price(city: str, trade_object: str | None, years: list[str], house_type: str | None) -> pd.DataFrame:
+def query_multi_year_price(
+    city: str, 
+    trade_object: str | None, 
+    years: list[str], 
+    house_type: str | None
+) -> pd.DataFrame:
     with closing(sqlite3.connect(DB_PATH)) as conn:
         placeholders = ','.join(['?'] * len(years))
         sql = f'''
@@ -151,7 +198,15 @@ def query_multi_year_price(city: str, trade_object: str | None, years: list[str]
             return df
 
 
-def query_multi_city_price_with_age(cities: list[str], year: str, trade_object: str | None, house_type: str | None, remove_outliers=False) -> pd.DataFrame:
+def query_multi_city_price_with_age(
+    cities: list[str], year: str,
+    trade_object: str | None,
+    house_type: str | None,
+    remove_outliers=0,
+    use_median=False,
+    remove_zero=False,
+    limit_under_100m=False
+) -> pd.DataFrame:
     dfs = []
     with closing(sqlite3.connect(DB_PATH)) as conn:
         for city in cities:
@@ -160,7 +215,7 @@ def query_multi_city_price_with_age(cities: list[str], year: str, trade_object: 
                     '{city}' AS city,
                     CAST(SUBSTR(`交易年月日`, 5, 2) AS INTEGER) AS month,
                     CAST(`房齡` AS INTEGER) AS house_age,
-                    AVG(`建物總價萬元`) as avg_price_million
+                    `建物總價萬元` AS price
                 FROM `{city}`
                 WHERE `交易年` = ?
                   AND `房齡` NOT NULL AND `房齡` != '' AND `房齡` != '見其他登記事項'
@@ -176,25 +231,39 @@ def query_multi_city_price_with_age(cities: list[str], year: str, trade_object: 
                 params.append(house_type)
 
             sql += '''
-                GROUP BY month, house_age
-                ORDER BY 房齡, 建物總價萬元
+                ORDER BY 房齡
             '''
 
             try:
                 df = pd.read_sql_query(sql, conn, params=params)
+                df = df.dropna(subset=['house_age', 'price'])
 
-                if remove_outliers and not df.empty:
-                    quantile_val = 1 - remove_outliers / 100  # 例如 1% -> 0.99
-                    upper_bound = df["avg_price_million"].quantile(quantile_val)
-                    df = df[df["avg_price_million"] <= upper_bound]
-
-                df = df.dropna(subset=['house_age'])
                 df['house_age'] = df['house_age'].astype(int)
-                dfs.append(df)
+                df['price'] = pd.to_numeric(df['price'], errors='coerce')
+
+                if remove_zero:
+                    df = df[df['price'] > 0]
+
+                if limit_under_100m:
+                    df = df[df['price'] < 10000]
+
+                if remove_outliers > 0:
+                    upper = df['price'].quantile(1 - remove_outliers)
+                    df = df[df['price'] <= upper]
+
+                if df.empty:
+                    continue
+
+                agg_func = 'median' if use_median else 'mean'
+                df_grouped = df.groupby(['city', 'month', 'house_age'])['price'].agg(agg_func).reset_index()
+                df_grouped.rename(columns={'price': 'avg_price_million'}, inplace=True)
+
+                dfs.append(df_grouped)
             except Exception as e:
-                print(f"[SQL] 查詢屋齡3D趨勢圖錯誤({city}): {e}")
+                print(f"[SQL] 查詢錯誤({city}): {e}")
 
     if dfs:
         return pd.concat(dfs, ignore_index=True)
     else:
         return pd.DataFrame()
+

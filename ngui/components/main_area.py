@@ -23,26 +23,30 @@ def render_main():
             - 這裡整合、視覺化一些內政部不動產實際資料供應系統的成交案件資料
             - 關於不動產資料都歸於 內政部地政司(Dept of Land Administration M.O.I.) 所有
             - 本儀表板僅供學術研究與個人使用，請勿用於商業用途
-            
         ''')
         ui.markdown()
 
         ui.separator()
+
         ui.label('🗺️ Instructions').style(MAIN_LABEL_STYLE)
         ui.markdown('''
-            - 點選左側選單可切換頁面
+            - 點選 Menu, Charts 可收放頁面
             - 有任何問題，請先確認資料來源是否正確
             - 其他建議或需求，請聯繫開發者
-            - 後續若有成交車位查詢需求，可再視狀況更新
+            - 後續若有其他資料如成交車位等查詢需求，可再視狀況更新
         ''')
         ui.markdown()
+
         ui.separator()
+
         ui.label('⚠️ Notice').style(MAIN_LABEL_STYLE)
         ui.markdown('''
             - 為維護系統穩定與公平使用，請勿進行以下行為：
-              - 大量、頻繁重複查詢以導致系統負載異常
-              - 自動化工具或爬蟲行為存取資料
-              - 以不當方式干擾他人使用或測試系統弱點
+                <div style="margin-left: 20px;">
+                大量、頻繁重複查詢以導致系統負載異常<br>
+                自動化工具或爬蟲行為存取資料<br>
+                以不當方式干擾他人使用或測試系統弱點<br>
+                </div>
             - 系統設有黑名單機制，違反上述規定者會被限制存取一段時間
             - 使用時請遵守基本網路禮儀，尊重開發者與其他使用者
         ''')
@@ -79,10 +83,24 @@ def render_data_distribution():
                 - 這個區域讓您根據成交年份、縣市、分類與屋況查詢不同的不動產價格分佈
                 - 成交年份與縣市是必要的查詢條件，請確保選擇後再進行查詢
                 - 在選擇分類(如房地或土地)和屋況(如預售屋、新屋、中古屋等)後，系統將顯示相關資料
-                - 可透過「移除價格最高邊界值(%)」選項，排除價格異常值（如商辦、豪宅），讓圖表分佈更趨近常態
             ''')
+            
             ui.markdown('''
-                - 若查詢結果為空，可能是因為該條件下尚未有成交紀錄
+            - 以下進階選項可協助您提升圖表的可讀性與資料品質：
+                <div style="margin-left: 20px;">
+                移除價格最高邊界值(%)：排除極端高價的資料點，避免過度拉高平均值<br>
+                移除價格為 0 的物件：可過濾異常或填寫錯誤的資料，提升準確性<br>
+                僅保留總價 < 1 億資料：可排除大宗交易或特殊物件的干擾
+                </div>
+            ''')
+
+            ui.markdown(''' 
+            - 若查詢結果為空，可能是因為：
+                <div style="margin-left: 20px;">
+                選擇的條件過於嚴格，導致無符合資料<br>
+                部分縣市在該年份下無成交紀錄<br>
+                所選屋況或交易標的尚無統計資料
+                </div>
             ''')
 
         with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
@@ -112,13 +130,14 @@ def render_data_distribution():
 
             area_select.on('update:model-value', on_area_change)
 
-            # 查詢按鈕
             async def on_search_click() -> bool:
                 year_value = year_select.value
                 city_value = city_select.value
                 type_value = type_select.value
                 status_value = status_select.value
                 remove_percent = remove_outliers_slider.value / 100
+                remove_zero = remove_zero_checkbox.value
+                limit_100m = filter_under_100m_checkbox.value
 
                 # 檢查年份與縣市是否有填
                 if not year_value and not city_value:
@@ -132,7 +151,9 @@ def render_data_distribution():
                     return False
 
                 try:
-                    df = query_distribution_data(year_value, city_value, type_value, status_value, remove_percent)
+                    df = query_distribution_data(
+                        year_value, city_value, type_value, status_value, 
+                        remove_percent, remove_zero, limit_100m)
                 except Exception as e:
                     ui.notify('查詢失敗，請反應給站長協助處理', type='negative', position='top')
                     log_warning(f'查詢 [不動產分佈圖] 失敗：{str(e)}')
@@ -164,17 +185,23 @@ def render_data_distribution():
                 ui.label('屋況：')
                 status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None, clearable=True).classes('w-36')
 
+
             # 第三列
             with ui.row().style(ROW_STYLE_NORMAL):
+                remove_zero_checkbox = ui.checkbox('移除價格為 0')
+                filter_under_100m_checkbox = ui.checkbox('僅保留總價 < 1 億資料')
+
+            # 第四列
+            with ui.row().style(ROW_STYLE_NORMAL):
                 ui.label('移除價格最高邊界值(%)').style('font-weight: 600; margin-right: 12px;')
-                remove_outliers_slider = ui.slider(min=0, max=10, value=0, step=1).classes('w-72')
+                remove_outliers_slider = ui.slider(min=0, max=25, value=0, step=1).classes('w-72')
                 percentage_label = ui.label(f'{remove_outliers_slider.value}%').style('min-width: 30px; text-align: left; margin-left: 8px;')
                 def update_label(event):
                     val = event.args  # 直接用 event.args
                     percentage_label.set_text(f'{val}%')
                 remove_outliers_slider.on('update:model-value', update_label)
 
-                CountdownButton('搜尋', icon='search', on_click=on_search_click)
+                CountdownButton('搜尋', icon='search', on_click=on_search_click, color='primary')
 
         ui.separator()
 
@@ -188,12 +215,26 @@ def render_multi_city_3d():
         with ui.expansion('多縣市 3D 分佈圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             ui.markdown('''
                 - 選擇多個縣市與單一年份，將顯示建物坪數、總價與房齡的 3D 分佈圖
-                - 成交年份與縣市是必要的查詢條件，請確保選擇後再進行查詢
+                - 成交年份與縣市(2~3)是必要的查詢條件，請確保選擇後再進行查詢
                 - 在選擇分類(如房地或土地)和屋況(如預售屋、新屋、中古屋等)後，系統將顯示相關資料
-                - 可透過「移除價格最高邊界值(%)」選項，排除價格異常值（如商辦、豪宅），讓圖表分佈更趨近常態
             ''')
+
+            ui.markdown('''
+            - 以下進階選項可協助您提升圖表的可讀性與資料品質：
+                <div style="margin-left: 20px;">
+                移除價格最高邊界值(%)：排除極端高價的資料點，避免過度拉高平均值<br>
+                移除價格為 0 的物件：可過濾異常或填寫錯誤的資料，提升準確性<br>
+                僅保留總價 < 1 億資料：可排除大宗交易或特殊物件的干擾
+                </div>
+            ''')
+
             ui.markdown(''' 
-                - 若查詢結果為空，可能是因為該條件下尚未有成交紀錄
+            - 若查詢結果為空，可能是因為：
+                <div style="margin-left: 20px;">
+                選擇的條件過於嚴格，導致無符合資料<br>
+                部分縣市在該年份下無成交紀錄<br>
+                所選屋況或交易標的尚無統計資料
+                </div>
             ''')
 
         with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
@@ -222,6 +263,11 @@ def render_multi_city_3d():
                 ui.label('屋況：')
                 status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None, clearable=True).classes('w-36')
 
+            # 第三列
+            with ui.row().style(ROW_STYLE_NORMAL):
+                remove_zero_checkbox = ui.checkbox('移除價格為 0')
+                filter_under_100m_checkbox = ui.checkbox('僅保留總價 < 1 億資料')
+
             # 搜尋按鈕
             async def on_search_click():
                 selected_cities = [city for city, checkbox in city_checkboxes.items() if checkbox.value]
@@ -229,6 +275,8 @@ def render_multi_city_3d():
                 type_value = type_select.value
                 status_value = status_select.value
                 remove_percent = remove_outliers_slider.value / 100
+                remove_zero = remove_zero_checkbox.value
+                limit_100m = filter_under_100m_checkbox.value
 
                 # 驗證輸入條件
                 if not selected_cities or not selected_year:
@@ -242,7 +290,9 @@ def render_multi_city_3d():
                     return
 
                 try:
-                    df = query_multi_city_3d_data(selected_cities, selected_year, type_value, status_value, remove_percent)
+                    df = query_multi_city_3d_data(
+                        selected_cities, selected_year, type_value, status_value, 
+                        remove_percent, remove_zero, limit_100m)
                 except Exception as e:
                     ui.notify('查詢失敗，請反應給站長協助處理', type='negative', position='top')
                     log_warning(f'查詢 [多縣市3D圖] 失敗：{str(e)}')
@@ -257,10 +307,10 @@ def render_multi_city_3d():
                     fig = create_3d_distribution_chart(df)
                     ui.plotly(fig).classes('w-full')
 
-            # 第三列
+            # 第四列
             with ui.row().style(ROW_STYLE_NORMAL):
                 ui.label('移除價格最高邊界值(%)').style('font-weight: 600; margin-right: 12px;')
-                remove_outliers_slider = ui.slider(min=0, max=10, value=0, step=1).classes('w-72')
+                remove_outliers_slider = ui.slider(min=0, max=25, value=0, step=1).classes('w-72')
                 percentage_label = ui.label(f'{remove_outliers_slider.value}%').style(
                     'min-width: 30px; text-align: left; margin-left: 8px;'
                 )
@@ -269,7 +319,7 @@ def render_multi_city_3d():
                     percentage_label.set_text(f'{val}%')
                 remove_outliers_slider.on('update:model-value', update_label)
 
-                CountdownButton('搜尋', icon='search', on_click=on_search_click)
+                CountdownButton('搜尋', icon='search', on_click=on_search_click, color='primary')
 
         ui.separator()
 
@@ -362,7 +412,7 @@ def render_data_trends():
                 ui.label('屋況：')
                 status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None, clearable=True).classes('w-36')
 
-                CountdownButton('搜尋', icon='search', on_click=on_search_click)
+                CountdownButton('搜尋', icon='search', on_click=on_search_click, color='primary')
 
             ui.separator()
 
@@ -458,7 +508,7 @@ def render_multi_year_trends():
                 ui.label('屋況：')
                 house_status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None, clearable=True).classes('w-36')
 
-                CountdownButton('搜尋', icon='search', on_click=on_search)
+                CountdownButton('搜尋', icon='search', on_click=on_search, color='primary')
             
         ui.separator()
 
@@ -469,14 +519,31 @@ def render_3D_multi_year_trends():
     CHART_CONTAINER.clear()
 
     with MAIN_CONTENT:
-        with ui.expansion('多縣市屋齡 3D 趨勢圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
+        with ui.expansion('複合年度 3D 趨勢圖', icon='description', value=True).classes('w-full').style(MAIN_CTX_STYLE):
             ui.markdown(''' 
-            - 這個區域讓您查詢跨年份的房價變化趨勢，協助觀察長期市場走向
+            - 這個區域讓您查詢多縣市單一年份中，不同屋齡與平均房價之間的關係，藉由 3D 趨勢圖視覺化呈現
+            - 透過比較多個縣市的同年成交資料，可觀察各地屋齡與價格的整體分佈與趨勢變化
             - 成交年份(可選 2~5 個項目)與縣市是必要的查詢條件，請確保選擇後再進行查詢
-            - 在選擇分類(如房地或土地)和屋況(如預售屋、新屋、中古屋等)後，系統將顯示相關資料
+            - 可依需求選擇「交易標的」與「屋況」，進一步篩選符合條件的物件類型
             ''')
+
+            ui.markdown('''
+            - 以下進階選項可協助您提升圖表的可讀性與資料品質：
+                <div style="margin-left: 20px;">
+                移除價格最高邊界值(%)：排除極端高價的資料點，避免過度拉高平均值<br>
+                使用中位數取代平均值：能有效避免少數高價物件對趨勢線造成扭曲<br>
+                移除價格為 0 的物件：可過濾異常或填寫錯誤的資料，提升準確性<br>
+                僅保留總價 < 1 億資料：可排除大宗交易或特殊物件的干擾
+                </div>
+            ''')
+
             ui.markdown(''' 
-            - 若查詢結果為空，可能是因為該條件下尚未有成交紀錄。
+            - 若查詢結果為空，可能是因為：
+                <div style="margin-left: 20px;">
+                選擇的條件過於嚴格，導致無符合資料<br>
+                部分縣市在該年份下無成交紀錄<br>
+                所選屋況或交易標的尚無統計資料
+                </div>
             ''')
 
         with ui.expansion('搜尋條件', icon='list', value=True).classes('w-full').style(MAIN_CTX_STYLE):
@@ -505,14 +572,22 @@ def render_3D_multi_year_trends():
                 ui.label('屋況：')
                 house_status_select = ui.select(HOUSE_STATUS_SELECTIONS, value=None, clearable=True).classes('w-36')
 
+            # 第三列
+            with ui.row().style(ROW_STYLE_NORMAL):
+                use_median_checkbox = ui.checkbox('使用中位數取代平均值')
+                remove_zero_checkbox = ui.checkbox('移除價格為 0')
+                filter_under_100m_checkbox = ui.checkbox('僅保留總價 < 1 億資料')
+
             async def on_search():
                 selected_year = year_select.value
                 selected_cities = [city for city, cb in city_checkboxes.items() if cb.value]
                 trade_type = trade_type_select.value
                 house_status = house_status_select.value
                 remove_percent = remove_outliers_slider.value / 100
+                use_median = use_median_checkbox.value
+                remove_zero = remove_zero_checkbox.value
+                limit_100m = filter_under_100m_checkbox.value
 
-                # 驗證必填條件
                 if not selected_year:
                     ui.notify('請選擇成交年份', type='warning', position='top')
                     return
@@ -524,10 +599,15 @@ def render_3D_multi_year_trends():
                     return
 
                 try:
-                    df = query_multi_city_price_with_age(selected_cities, selected_year, trade_type, house_status, remove_percent)
+                    df = query_multi_city_price_with_age(
+                        selected_cities, selected_year,
+                        trade_type, house_status,
+                        remove_percent,
+                        use_median, remove_zero, limit_100m
+                    )
                 except Exception as e:
                     ui.notify('查詢失敗，請反應給站長協助處理', type='negative', position='top')
-                    log_warning(f'查詢 [單一年份多縣市 3D 趨勢圖] 失敗：{str(e)}')
+                    log_warning(f'查詢失敗：{str(e)}')
                     return
 
                 if df.empty:
@@ -539,20 +619,19 @@ def render_3D_multi_year_trends():
                 with CHART_CONTAINER:
                     ui.plotly(fig).classes('w-full')
 
-            # 第三列
+            # 第四列
             with ui.row().style(ROW_STYLE_NORMAL):
+                remove_outliers_slider = ui.slider(min=0, max=25, value=0, step=1).classes('w-72')
                 ui.label('移除價格最高邊界值(%)').style('font-weight: 600; margin-right: 12px;')
-                remove_outliers_slider = ui.slider(min=0, max=10, value=0, step=1).classes('w-72')
                 percentage_label = ui.label(f'{remove_outliers_slider.value}%').style('min-width: 30px; text-align: left; margin-left: 8px;')
 
                 def update_label(event):
                     val = event.args
                     percentage_label.set_text(f'{val}%')
-
                 remove_outliers_slider.on('update:model-value', update_label)
 
-                CountdownButton('搜尋', icon='search', on_click=on_search)
-
+                CountdownButton('搜尋', icon='search', on_click=on_search, color='primary')
+            
         ui.separator()
 
 

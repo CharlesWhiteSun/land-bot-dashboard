@@ -23,6 +23,7 @@ def create_distribution_chart(df: pd.DataFrame):
     fig.update_layout(height=600)
     return fig
 
+
 def create_3d_distribution_chart(df: pd.DataFrame):
     import plotly.express as px
 
@@ -33,7 +34,7 @@ def create_3d_distribution_chart(df: pd.DataFrame):
         df,
         x="建物坪數",
         y="房齡",
-        z="建物總價萬元",
+        z="price",
         color="縣市",
         hover_data=hover_cols,
         template="plotly_dark",
@@ -103,14 +104,13 @@ def create_multi_year_trend_chart(df: pd.DataFrame, city: str, trade_type: str, 
 def create_single_year_multi_city_trend_chart_3d(df: pd.DataFrame, year: str, trade_type: str, house_status: str):
     fig = go.Figure()
 
-    # 每個縣市一條線，x軸屋齡，y軸月份（可用月份作為 y 軸區分，但你的需求是 y 軸縣市，這邊用縣市作 y 軸分組，但3D座標無法直接用字串作軸，需轉成類別數字）
-    # 但 Plotly 3D座標只能是數字，無法直接用字串當軸 => 需把縣市轉成數字作為 y 軸，再用 ticktext 顯示名稱
-
     cities = sorted(df['city'].unique())
-    city_to_y = {city: i for i, city in enumerate(cities)}  # 縣市映射成數字 y 軸
+    city_to_y = {city: i for i, city in enumerate(cities)}
 
     for city in cities:
-        city_df = df[df['city'] == city]
+        # ✅ 這行是關鍵，確保繪圖資料照屋齡由小排到大
+        city_df = df[df['city'] == city].sort_values('house_age')
+
         fig.add_trace(go.Scatter3d(
             x=city_df['house_age'],
             y=[city_to_y[city]] * len(city_df),
@@ -126,7 +126,6 @@ def create_single_year_multi_city_trend_chart_3d(df: pd.DataFrame, year: str, tr
             )
         ))
 
-    # 設定 y 軸的 ticktext 與 tickvals，顯示縣市名稱
     fig.update_layout(
         title=f"{year} 年 {trade_type or ''} {house_status or ''} 多縣市屋齡 3D 趨勢圖",
         scene=dict(
@@ -145,4 +144,5 @@ def create_single_year_multi_city_trend_chart_3d(df: pd.DataFrame, year: str, tr
     )
 
     return fig
+
 
