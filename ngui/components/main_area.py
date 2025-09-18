@@ -16,6 +16,8 @@ CHART_CONTAINER = ui.column().classes('w-full items-center')  # 放圖表的區�
 
 def render_main():
     MAIN_CONTENT.clear()
+    CHART_CONTAINER.clear()
+    
     with MAIN_CONTENT:
         ui.label('🏙️ Welcome!').style(MAIN_LABEL_STYLE)
         ui.markdown(f'''
