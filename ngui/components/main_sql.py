@@ -130,7 +130,7 @@ def query_avg_price(
         sql = f'''
             SELECT 
                 SUBSTR(`交易年月日`, 1, 4) || '-' || SUBSTR(`交易年月日`, 5, 2) as ym,
-                AVG(`建物總價萬元`) as avg_price_million
+                FLOOR(AVG(`建物總價萬元`)) as avg_price_million
             FROM `{city}`
             WHERE 1=1
                 AND `交易年` = ?
@@ -171,9 +171,11 @@ def query_multi_year_price(
             SELECT 
                 SUBSTR(`交易年月日`, 1, 4) as year,
                 CAST(SUBSTR(`交易年月日`, 5, 2) AS INTEGER) as month,
-                AVG(`建物總價萬元`) as avg_price_million
+                FLOOR(AVG(`建物總價萬元`)) as avg_price_million
             FROM `{city}`
             WHERE 1=1
+                AND LENGTH(`交易年月日`) = 8
+                AND SUBSTR(`交易年月日`, 5, 2) BETWEEN '01' AND '12'
                 AND `交易年` IN ({placeholders})
         '''
         params = years

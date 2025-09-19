@@ -171,7 +171,7 @@ def render_data_distribution():
                     return False
                 
                 CHART_CONTAINER.clear()
-                fig = create_distribution_chart(df)
+                fig = create_distribution_chart(df, city_value, year_value)
                 with CHART_CONTAINER:
                     ui.plotly(fig).classes('w-full')
                 return True
@@ -306,7 +306,7 @@ def render_multi_city_3d():
 
                 CHART_CONTAINER.clear()
                 with CHART_CONTAINER:
-                    fig = create_3d_distribution_chart(df)
+                    fig = create_3d_distribution_chart(df, selected_cities, selected_year)
                     ui.plotly(fig).classes('w-full')
 
             # 第四列

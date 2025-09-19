@@ -3,14 +3,14 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-def create_distribution_chart(df: pd.DataFrame):
+def create_distribution_chart(df: pd.DataFrame, city: str, year: str):
     hover_cols = ["鄉鎮市區", "建物型態", "建物每坪單價萬元", "主要用途", "房齡", "屋況"]
     df[hover_cols] = df[hover_cols].fillna("")
 
     fig = px.scatter(
         df,
+        title=f"{city} {year}年 價坪分佈圖",
         template="plotly_dark",
-        title="縣市價坪分佈圖",
         x="建物坪數",
         y="建物總價萬元",
         labels={"建物坪數": "面積(坪)", "建物總價萬元": "總價(萬元)"},
@@ -24,7 +24,7 @@ def create_distribution_chart(df: pd.DataFrame):
     return fig
 
 
-def create_3d_distribution_chart(df: pd.DataFrame):
+def create_3d_distribution_chart(df: pd.DataFrame, cities: list[str], year: str):
     import plotly.express as px
 
     hover_cols = ["縣市", "鄉鎮市區", "建物型態", "主要用途", "屋況"]
@@ -32,18 +32,18 @@ def create_3d_distribution_chart(df: pd.DataFrame):
 
     fig = px.scatter_3d(
         df,
+        title=f"{', '.join(cities)} {year}年 3D 價坪分佈圖",
+        template="plotly_dark",
         x="建物坪數",
         y="房齡",
         z="price",
         color="縣市",
         hover_data=hover_cols,
-        template="plotly_dark",
-        title="多縣市 3D 價坪分佈圖",
         opacity=1,
     )
     fig.update_traces(marker=dict(size=4))
     fig.update_layout(
-        height=1000,
+        height=750,
         scene=dict(
             xaxis_title="建物坪數",
             yaxis_title="房齡（年）",
@@ -63,7 +63,7 @@ def create_price_trend_chart(df: pd.DataFrame, city: str, trade_type: str, year:
     ))
 
     fig.update_layout(
-        title=f"{year} 年 {trade_type or ''} {house_status or ''} 縣市價格年度趨勢圖",
+        title=f"{city} {year} 年 {trade_type or ''} {house_status or ''} 縣市價格年度趨勢圖",
         xaxis_title='交易年月',
         yaxis_title='平均總價 (萬元)',
         xaxis_type='category',
@@ -91,7 +91,7 @@ def create_multi_year_trend_chart(df: pd.DataFrame, city: str, trade_type: str, 
         ))
 
     fig.update_layout(
-        title=f"{trade_type or ''} {house_status or ''} 多年度價格趨勢圖",
+        title=f"{city} {trade_type or ''} {house_status or ''} 多年度價格趨勢圖",
         xaxis_title='月份',
         yaxis_title='平均總價 (萬元)',
         xaxis=dict(tickmode='linear', tick0=1, dtick=1),
@@ -128,7 +128,7 @@ def create_single_year_multi_city_trend_chart_3d(df: pd.DataFrame, year: str, tr
     range_y = [-1, len(cities)]  # 預設上下各留一格空間
 
     fig.update_layout(
-        title=f"{year} 年 {trade_type or ''} {house_status or ''} 多縣市年度 3D 屋齡價格趨勢圖",
+        title=f"{', '.join(cities)} {year} 年 {trade_type or ''} {house_status or ''} 3D 屋齡價格趨勢圖",
         scene=dict(
             xaxis=dict(title='屋齡（年）'),
             yaxis=dict(
@@ -140,7 +140,7 @@ def create_single_year_multi_city_trend_chart_3d(df: pd.DataFrame, year: str, tr
             ),
             zaxis=dict(title='平均總價 (萬元)'),
         ),
-        height=700,
+        height=600,
         template='plotly_dark',
         margin=dict(l=0, r=0, b=0, t=50)
     )
