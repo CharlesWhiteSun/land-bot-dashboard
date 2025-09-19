@@ -29,12 +29,17 @@ def info_json() -> dict:
     os.makedirs(old_dir, exist_ok=True)
 
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--use-gl=swiftshader")
+    chrome_options.add_argument("--enable-webgl")
+    chrome_options.add_argument("--ignore-gpu-blacklist")
     chrome_options.add_argument('--ignore-certificate-errors')
     chrome_options.add_argument('--ignore-ssl-errors')
     chrome_options.add_argument('--allow-insecure-localhost')
+    chrome_options.add_argument("--window-size=1920,1080")
+
     driver = None
 
     try:

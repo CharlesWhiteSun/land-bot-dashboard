@@ -1,0 +1,23 @@
+# 忽略 Git 設定與記錄
+.git
+.gitignore
+
+# 忽略 IDE 或編輯器垃圾檔案
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+.venv
+.vscode/
+.idea/
+
+# 忽略 Dockerfile 构建缓存
+*.log
+.env
+*.db
+*.sqlite3
+
+# 忽略該資料夾及以下所有檔案
+data/
+logs/
