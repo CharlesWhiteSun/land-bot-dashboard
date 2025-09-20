@@ -3,49 +3,48 @@ import json
 import hashlib
 from datetime import datetime
 from typing import Dict, Tuple
+from config.paths import RAW_DATA_DIR  # 使用全域可寫入資料夾
 
-# 檔案位置設定
-DATA_DIR = os.path.join("api", "data", "real_estate", "raw")
+DATA_DIR = RAW_DATA_DIR
 DATA_FILE = os.path.join(DATA_DIR, "latest_notice.json")
 HASH_FILE = os.path.join(DATA_DIR, "latest_notice.hash")
 INIT_FLAG_FILE = os.path.join(DATA_DIR, ".init_done")
 
-# 確保資料夾存在
 def ensure_data_dir():
     os.makedirs(DATA_DIR, exist_ok=True)
 
-# 計算資料的 hash（避免重複寫入）
+# ===== 計算資料的 hash（避免重複寫入） =====
 def calculate_data_hash(data: Dict) -> str:
     json_str = json.dumps(data, ensure_ascii=False, sort_keys=True)
     return hashlib.sha256(json_str.encode("utf-8")).hexdigest()
 
-# 檢查是否為系統首次啟動
+# ===== 檢查是否為系統首次啟動 =====
 def is_first_time_startup() -> bool:
     return not os.path.exists(INIT_FLAG_FILE)
 
-# 標記已初始化
+# ===== 標記已初始化 =====
 def mark_initialized():
     with open(INIT_FLAG_FILE, "w", encoding="utf-8") as f:
         f.write(f"initialized at {datetime.now().isoformat()}")
 
-# 讀取之前的 hash 值
+# ===== 讀取之前的 hash 值 =====
 def read_previous_hash() -> str:
     if not os.path.exists(HASH_FILE):
         return ""
     with open(HASH_FILE, "r", encoding="utf-8") as f:
         return f.read().strip()
 
-# 寫入目前的 hash 值
+# ===== 寫入目前的 hash 值 =====
 def write_current_hash(hash_str: str):
     with open(HASH_FILE, "w", encoding="utf-8") as f:
         f.write(hash_str)
 
-# 儲存資料
+# ===== 儲存資料 =====
 def save_data(data: Dict):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# 核心邏輯：是否需要更新資料
+# ===== 核心邏輯：是否需要更新資料 =====
 def check_data(new_data: Dict) -> Tuple[bool, str]:
     """
     管理資料儲存與判斷是否更新。
@@ -60,7 +59,7 @@ def check_data(new_data: Dict) -> Tuple[bool, str]:
         save_data(new_data)
         write_current_hash(new_hash)
         mark_initialized()
-        return (True, "系統首次啟動，已初始化資料")
+        return True, "系統首次啟動，已初始化資料"
     
     old_hash = read_previous_hash()
 
@@ -70,5 +69,4 @@ def check_data(new_data: Dict) -> Tuple[bool, str]:
         write_current_hash(new_hash)
         return True, "資料內容有更新，已重新儲存"
     
-    return (False, "資料未變動，無需更新")
-        
+    return False, "資料未變動，無需更新"

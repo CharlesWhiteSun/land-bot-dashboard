@@ -1,7 +1,7 @@
 import os
 import json
 from bs4 import BeautifulSoup
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -13,15 +13,15 @@ from utils.logger import log_error
 from utils.trace import generate_trace_id
 from utils.response_helper import success_response, error_response
 
+from config.paths import RAW_DATA_DIR
 
 router = APIRouter()
 
-DATA_DIR = os.path.join("api", "data", "real_estate", "raw")
-DATA_FILE = os.path.join(DATA_DIR, "fetch_options_route.json")
+DATA_FILE = os.path.join(RAW_DATA_DIR, "fetch_options_route.json")
 
 
 def save_or_update_data(new_data: dict) -> bool:
-    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(RAW_DATA_DIR, exist_ok=True)
 
     if not os.path.exists(DATA_FILE):
         with open(DATA_FILE, "w", encoding="utf-8") as f:
@@ -57,18 +57,20 @@ def fetch_options_and_save() -> dict:
 
         history_tab = WebDriverWait(driver, 10, poll_frequency=0.25).until(
             EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, 'a.btndl[aria-controls="tab_opendata_history_content"]')))
+                (By.CSS_SELECTOR, 'a.btndl[aria-controls="tab_opendata_history_content"]'))
+        )
         history_tab.click()
 
         WebDriverWait(driver, 10, poll_frequency=0.25).until(
-            EC.presence_of_element_located((By.ID, "historySeason_id")))
+            EC.presence_of_element_located((By.ID, "historySeason_id"))
+        )
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
         select_element = soup.find("select", {"id": "historySeason_id"})
         if not select_element:
             trace_id = generate_trace_id()
             msg = 'Selenium 抓取失敗'
-            log_error(ErrorCode.UNKNOWN_ERROR.value, msg)
+            log_error(ErrorCode.UNKNOWN_ERROR.value, msg, trace_id)
             return {
                 "success": False,
                 "trace_id": trace_id,
@@ -106,7 +108,6 @@ def fetch_options_and_save() -> dict:
 
 @router.get("/fetch_options")
 async def fetch_options():
-
     result = fetch_options_and_save()
 
     if result["success"]:
@@ -114,11 +115,10 @@ async def fetch_options():
             "historySeason_id": result["data"],
             "updated": result["updated"]
         })
-    
+
     return error_response(
         error_code=ErrorCode.UNKNOWN_ERROR.value,
         message="資料抓取失敗，請稍後再試",
         trace_id=result["trace_id"],
         status_code=500
     )
-        

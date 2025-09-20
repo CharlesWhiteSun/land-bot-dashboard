@@ -6,17 +6,16 @@ import re
 import csv
 
 from utils.logger import log_warning
-
+from config.paths import RAW_DATA_DIR, OLD_DATA_DIR, DB_PATH
 
 def get_house_type(diff_year):
     if diff_year <= 3:
         return "新屋"
-    elif diff_year <= 10:
+    if diff_year <= 10:
         return "新古屋"
-    elif diff_year <= 20:
+    if diff_year <= 20:
         return "中古屋"
-    else:
-        return "老屋"
+    return "老屋"
 
 def format_row(row, filename, idx=None, folder=None):
     trade_object = str(row['交易標的'])
@@ -24,7 +23,6 @@ def format_row(row, filename, idx=None, folder=None):
     prefix_trade_object = trade_object.split('(', maxsplit=1)[0]
     prefix_building_type = building_type.split('(', maxsplit=1)[0]
 
-    # 建物移轉總面積平方公尺 > 坪
     ping = 0.0
     unit_ping_thousand_price = 0.0
     try:
@@ -39,8 +37,7 @@ def format_row(row, filename, idx=None, folder=None):
         msg = f"{filename}:{idx} Error converting 建物坪數: {e}"
         log_warning(msg)
         print(msg)
-    
-    # 換算建物總價元為萬元
+
     total_thousand_price = 0.0
     try:
         total_price_row = float(row['總價元'])
@@ -51,7 +48,6 @@ def format_row(row, filename, idx=None, folder=None):
         log_warning(msg)
         print(msg)
 
-    # 換算車位總價元為萬元
     car_thousand_price = 0.0
     try:
         car_price_row = float(row['車位總價元'])
@@ -61,8 +57,7 @@ def format_row(row, filename, idx=None, folder=None):
         msg = f"{filename}:{idx} Error converting 車位總價元: {e}"
         log_warning(msg)
         print(msg)
-    
-    # 車位移轉總面積平方公尺 > 坪
+
     car_ping = 0.0
     try:
         parking_space_square_feet_row = float(row['車位移轉總面積平方公尺'])
@@ -73,7 +68,6 @@ def format_row(row, filename, idx=None, folder=None):
         log_warning(msg)
         print(msg)
 
-    # 分類
     category = house_type = "其他"
     try:
         if '房' in trade_object:
@@ -87,7 +81,6 @@ def format_row(row, filename, idx=None, folder=None):
         log_warning(msg)
         print(msg)
 
-    # 停車位
     parking_space = "無"
     try:
         if '車' in trade_object:
@@ -97,7 +90,6 @@ def format_row(row, filename, idx=None, folder=None):
         log_warning(msg)
         print(msg)
 
-    # 電梯
     elevator = "無"
     try:
         if '有電梯' in building_type:
@@ -107,7 +99,6 @@ def format_row(row, filename, idx=None, folder=None):
         log_warning(msg)
         print(msg)
 
-    # 交易年月日 > 西元年    
     trade_date, trade_year, trade_month, trade_day = "", "", "", ""
     trade_row = row['交易年月日']
     try:
@@ -126,7 +117,6 @@ def format_row(row, filename, idx=None, folder=None):
         log_warning(msg)
         print(msg)
 
-    # 建築完成年月 > 西元年
     build_date = ""
     build_row = row['建築完成年月']
     try:
@@ -145,7 +135,6 @@ def format_row(row, filename, idx=None, folder=None):
         log_warning(msg)
         print(msg)
 
-    # 房齡計算、屋況判斷
     house_age = ""
     house_type = "預售屋"
     if not filename.endswith('b.csv'):
@@ -168,7 +157,6 @@ def format_row(row, filename, idx=None, folder=None):
                     parking_space, elevator, trade_date, trade_year, trade_month, trade_day, 
                     build_date, house_age, house_type])
 
-# ➤ 縣市與檔案代碼對照
 CITY_CODE_MAP = {
     "c": "基隆", "a": "臺北", "f": "新北", "h": "桃園", "o": "新竹", 
     "j": "新竹", "k": "苗栗", "b": "臺中", "m": "南投", "n": "彰化", 
@@ -176,11 +164,6 @@ CITY_CODE_MAP = {
     "t": "屏東", "g": "宜蘭", "u": "花蓮", "v": "臺東", "x": "澎湖",
     "w": "金門", "z": "連江",
 }
-
-# ➤ 預設路徑
-RAW_ROOT = os.path.join("api", "data", "real_estate", "raw")
-DB_PATH = os.path.join("ngui", "database", "real_estate.sqlite")
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 def get_city_name(filename: str) -> str:
     match = re.match(r"([a-z])_lvr_land_[ab]\.csv", filename.lower())
@@ -210,7 +193,6 @@ def clean_and_import_file(file_path: str, season_folder: str, conn: sqlite3.Conn
             quoting=csv.QUOTE_NONE,
             engine='python',
             quotechar='"',
-            # escapechar='\\'
         )
 
         if '車位移轉總面積(平方公尺)' in df.columns:
@@ -234,7 +216,6 @@ def clean_and_import_file(file_path: str, season_folder: str, conn: sqlite3.Conn
 
         df_cleaned.insert(0, "縣市", city)
 
-        # 數值轉換
         float_columns = [
             "建物坪數", "建物總價萬元", "建物每坪單價萬元",
             "車位坪數", "車位總價萬元", "房齡",
@@ -250,7 +231,6 @@ def clean_and_import_file(file_path: str, season_folder: str, conn: sqlite3.Conn
             if col in df_cleaned.columns:
                 df_cleaned[col] = pd.to_numeric(df_cleaned[col], errors="coerce", downcast="integer")
 
-        # 建立表格
         columns_def = ", ".join([f'"{col}" {map_dtype_to_sql(dtype)}' for col, dtype in df_cleaned.dtypes.items()])
         conn.execute(f'''
             CREATE TABLE IF NOT EXISTS "{city}" (
@@ -267,45 +247,40 @@ def clean_and_import_file(file_path: str, season_folder: str, conn: sqlite3.Conn
         log_warning(msg)
         print(msg)
 
-
 def apply_clean_and_import_file():
+    # 確保 RAW 與 OLD 資料夾存在
+    os.makedirs(RAW_DATA_DIR, exist_ok=True)
+    os.makedirs(OLD_DATA_DIR, exist_ok=True)
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
     conn = sqlite3.connect(DB_PATH)
 
-    # 掃描 raw 資料夾下所有子資料夾
-    for folder in os.listdir(RAW_ROOT):
-        folder_path = os.path.join(RAW_ROOT, folder)
+    for folder in os.listdir(RAW_DATA_DIR):
+        folder_path = os.path.join(RAW_DATA_DIR, folder)
         if not os.path.isdir(folder_path):
             continue
 
-        # 檢查資料夾內是否還有檔案，如果沒有就刪除資料夾
         if not os.listdir(folder_path):
             print(f"資料夾 {folder_path} 為空，將被刪除")
             os.rmdir(folder_path)
             continue
 
-        # 準備移動檔案的目標資料夾
-        old_folder_path = os.path.join("api", "data", "real_estate", "old", folder)
+        old_folder_path = os.path.join(OLD_DATA_DIR, folder)
         os.makedirs(old_folder_path, exist_ok=True)
 
-        # 處理該資料夾下的所有檔案
         for file in os.listdir(folder_path):
             if file.endswith(".csv"):
                 try:
-                    # 處理檔案
                     clean_and_import_file(os.path.join(folder_path, file), folder, conn)
-
-                    # 成功後將檔案移動到 'old' 資料夾
                     shutil.move(os.path.join(folder_path, file), os.path.join(old_folder_path, file))
                     print(f"✅ 檔案 {file} 處理完成，已移動到 {old_folder_path}")
-
                 except Exception as e:
-                    # 如果處理檔案過程中出現錯誤，則跳過此檔案並繼續處理其他檔案
                     print(f"❌ 處理檔案 {file} 時出錯，錯誤：{e}")
                     continue
 
-        # 檢查資料夾內是否還有檔案，並刪除空資料夾
         if not os.listdir(folder_path):
             print(f"資料夾 {folder_path} 內已無檔案，將被刪除")
             os.rmdir(folder_path)
 
     conn.commit()
+    conn.close()

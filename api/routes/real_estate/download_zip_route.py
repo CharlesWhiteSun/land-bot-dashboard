@@ -7,12 +7,15 @@ from utils.logger import log_error
 from enums.error_code import ErrorCode
 from utils.trace import generate_trace_id
 from utils.response_helper import success_response, error_response
+from config.paths import RAW_DATA_DIR  # 統一使用全域可寫入資料夾
 
-
+# ===== 核心下載函式 =====
 def download_season_zip(season: str) -> Tuple[bool, str, str]:
     url = f"https://plvr.land.moi.gov.tw/DownloadSeason?season={season}&type=zip&fileName=lvr_landcsv.zip"
     trace_id = generate_trace_id()
-    save_dir = os.path.join("api", "data", "real_estate", "raw")
+
+    # 使用全域資料夾
+    save_dir = RAW_DATA_DIR
     zip_path = os.path.join(save_dir, f"{season}.zip")
     os.makedirs(save_dir, exist_ok=True)
 
@@ -32,6 +35,7 @@ def download_season_zip(season: str) -> Tuple[bool, str, str]:
         return False, f"下載過程出錯：{str(e)}", trace_id
 
 
+# ===== FastAPI Router =====
 router = APIRouter()
 
 

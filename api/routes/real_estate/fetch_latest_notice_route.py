@@ -14,23 +14,22 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import tempfile
-import chromedriver_autoinstaller
 
 from fastapi import APIRouter
 from utils.response_helper import success_response, error_response
+import chromedriver_autoinstaller
+
+from config.paths import RAW_DATA_DIR, OLD_DATA_DIR, CHROMEDRIVER_DIR
 
 
 def info_json() -> dict:
     url = "https://plvr.land.moi.gov.tw/DownloadOpenData"
     trace_id = generate_trace_id()
-    raw_dir = os.path.join("api", "data", "real_estate", "raw")
-    old_dir = os.path.join("api", "data", "real_estate", "old")
-    json_path = os.path.join(raw_dir, "latest_notice.json")
-    zip_path = os.path.join(raw_dir, "latest_notice.zip")
+    json_path = os.path.join(RAW_DATA_DIR, "latest_notice.json")
+    zip_path = os.path.join(RAW_DATA_DIR, "latest_notice.zip")
 
-    os.makedirs(raw_dir, exist_ok=True)
-    os.makedirs(old_dir, exist_ok=True)
+    os.makedirs(RAW_DATA_DIR, exist_ok=True)
+    os.makedirs(OLD_DATA_DIR, exist_ok=True)
 
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
@@ -47,16 +46,9 @@ def info_json() -> dict:
     driver = None
 
     try:
-        # 設定 ChromeDriver 可寫入目錄
-        CHROMEDRIVER_DIR = os.path.join(tempfile.gettempdir(), "chromedriver")
+        # 安裝 ChromeDriver 到可寫入目錄
         os.makedirs(CHROMEDRIVER_DIR, exist_ok=True)
         chromedriver_path = chromedriver_autoinstaller.install(path=CHROMEDRIVER_DIR)
-
-        chrome_options = Options()
-        chrome_options.add_argument("--headless=new")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--window-size=1920,1080")
 
         # 使用 Service 指定 chromedriver 路徑
         service = Service(executable_path=chromedriver_path)
@@ -81,18 +73,18 @@ def info_json() -> dict:
                 "updated": False,
                 "content": new
             }
-        
+
         # 備份舊資料
         timestamp = datetime.now().strftime("%Y%m%d-%H%M")
         if os.path.exists(json_path):
-            os.rename(json_path, os.path.join(old_dir, f"{timestamp}_latest_notice.json"))
+            os.rename(json_path, os.path.join(OLD_DATA_DIR, f"{timestamp}_latest_notice.json"))
         if os.path.exists(zip_path):
-            os.rename(zip_path, os.path.join(old_dir, f"{timestamp}_latest_notice.zip"))
+            os.rename(zip_path, os.path.join(OLD_DATA_DIR, f"{timestamp}_latest_notice.zip"))
 
         # 儲存新 JSON
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(new, f, ensure_ascii=False, indent=2)
-        
+
         return {
             "success": True,
             "updated": True,
@@ -119,8 +111,8 @@ def latest_notice_zip() -> dict:
         response = requests.get(zip_url, timeout=30)
 
         trace_id = generate_trace_id()
-        raw_dir = os.path.join("api", "data", "real_estate", "raw")
-        zip_path = os.path.join(raw_dir, "latest_notice.zip")
+        zip_path = os.path.join(RAW_DATA_DIR, "latest_notice.zip")
+        os.makedirs(RAW_DATA_DIR, exist_ok=True)
 
         if response.status_code != 200:
             log_error(ErrorCode.FILE_NOT_FOUND.value, f"HTTP {response.status_code}", trace_id)
@@ -159,7 +151,7 @@ async def fetch_latest_notice():
             "updated": result.get("updated", False),
             "content": result.get("content", result['content'])
         })
-    
+
     return error_response(
         error_code=ErrorCode.UNKNOWN_ERROR.value,
         message=result.get("error", "抓取失敗"),

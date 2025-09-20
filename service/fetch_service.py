@@ -10,6 +10,8 @@ from api.routes.real_estate import fetch_options_route, fetch_latest_notice_rout
 from ngui.preprocessing.real_estate_cleaner import *
 from utils.fetch_manager import check_data
 from utils.logger import log_info
+from config.paths import RAW_DATA_DIR  # <-- 引入統一路徑設定
+
 
 def file_unzip(base_path: str, file_name: str):
     extract_dir_path = os.path.join(base_path, file_name)
@@ -34,7 +36,7 @@ def file_unzip(base_path: str, file_name: str):
 
 
 def unzip_all_season_zips(base_path):
-    json_path = os.path.join("api", "data", "real_estate", "raw", "fetch_options_route.json")
+    json_path = os.path.join(RAW_DATA_DIR, "fetch_options_route.json")
 
     if not os.path.exists(json_path):
         print(f"❌ 找不到設定檔: {json_path}")
@@ -70,14 +72,13 @@ def delete_path_recursive(base_path: str, name: str) -> Tuple[bool, str]:
     except Exception as e:
         return False, f"❌[刪除失敗] 發生錯誤: {str(e)}"
     
-def delete_all_real_estate_raw_zip():
-    base_path = os.path.join("api", "data", "real_estate", "raw")
 
-    _, msg = delete_path_recursive(base_path, 'latest_notice.zip')
+def delete_all_real_estate_raw_zip():
+    _, msg = delete_path_recursive(RAW_DATA_DIR, 'latest_notice.zip')
     print(msg)
 
     # 處理 historySeason_id 對應壓縮檔與資料夾
-    json_path = os.path.join(base_path, "fetch_options_route.json")
+    json_path = os.path.join(RAW_DATA_DIR, "fetch_options_route.json")
     if not os.path.exists(json_path):
         print(f"❌ 無法找到 {json_path}，略過 historySeason_id 處理")
         return
@@ -91,19 +92,16 @@ def delete_all_real_estate_raw_zip():
         return
 
     for season in season_dict.keys():
-        # 刪除壓縮檔與資料夾
-        _, msg = delete_path_recursive(base_path, f'{season}.zip')
+        _, msg = delete_path_recursive(RAW_DATA_DIR, f'{season}.zip')
         print(msg)
 
 
 def delete_all_real_estate_raw_folder():
-    base_path = os.path.join("api", "data", "real_estate", "raw")
-
-    _, msg = delete_path_recursive(base_path, 'latest_notice')
+    _, msg = delete_path_recursive(RAW_DATA_DIR, 'latest_notice')
     print(msg)
 
-    # 處理 historySeason_id 對應壓縮檔與資料夾
-    json_path = os.path.join(base_path, "fetch_options_route.json")
+    # 處理 historySeason_id 對應資料夾
+    json_path = os.path.join(RAW_DATA_DIR, "fetch_options_route.json")
     if not os.path.exists(json_path):
         print(f"❌ 無法找到 {json_path}，略過 historySeason_id 處理")
         return
@@ -117,12 +115,12 @@ def delete_all_real_estate_raw_folder():
         return
 
     for season in season_dict.keys():
-        _, msg = delete_path_recursive(base_path, season)
+        _, msg = delete_path_recursive(RAW_DATA_DIR, season)
         print(msg)
     
 
-def move_folder_to_dest(base_path: str, folder_name: str, dest_dir: str) -> Tuple[bool, str]:
-    target = os.path.join(base_path, folder_name)
+def move_folder_to_dest(folder_name: str, dest_dir: str) -> Tuple[bool, str]:
+    target = os.path.join(RAW_DATA_DIR, folder_name)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     dest_folder_name = f"{folder_name}_{timestamp}"
     dest_path = os.path.join(dest_dir, dest_folder_name)
@@ -139,8 +137,8 @@ def move_folder_to_dest(base_path: str, folder_name: str, dest_dir: str) -> Tupl
         return False, f"❌[搬移失敗] 發生錯誤: {str(e)}"
     
 
-def move_all_season_folders(base_path: str, dest_dir: str):
-    json_path = os.path.join("api", "data", "real_estate", "raw", "fetch_options_route.json")
+def move_all_season_folders(dest_dir: str):
+    json_path = os.path.join(RAW_DATA_DIR, "fetch_options_route.json")
 
     if not os.path.exists(json_path):
         print(f"❌ 找不到檔案: {json_path}")
@@ -155,7 +153,7 @@ def move_all_season_folders(base_path: str, dest_dir: str):
         return
 
     for season in history_seasons.keys():
-        _, message = move_folder_to_dest(base_path, season, dest_dir)
+        _, message = move_folder_to_dest(season, dest_dir)
         print(message)
 
 
@@ -196,7 +194,7 @@ def batch_download_zip_from_json(
 
     if failed_keys:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        fail_path = os.path.join("api", "data", "real_estate", "raw", f"download_failed_{timestamp}.json")
+        fail_path = os.path.join(RAW_DATA_DIR, f"download_failed_{timestamp}.json")
         with open(fail_path, "w", encoding="utf-8") as f:
             json.dump({"failed": failed_keys}, f, ensure_ascii=False, indent=2)
         print(f"❗ 失敗紀錄已儲存：{fail_path}")
@@ -236,8 +234,7 @@ def fetch_func():
         return
     
     # 解壓縮新資料
-    raw_path = 'api/data/real_estate/raw'
-    file_unzip(raw_path, 'latest_notice')
+    file_unzip(RAW_DATA_DIR, 'latest_notice')
 
     # 抓取歷史資料發布日期 option 字串
     opts = fetch_options_route.fetch_options_and_save()
@@ -254,12 +251,11 @@ def fetch_func():
     log_info(msg)
 
     # 抓取歷史資料 zip，解壓縮
-    batch_download_zip_from_json(f'{raw_path}/fetch_options_route.json')
-    unzip_all_season_zips(raw_path)
+    batch_download_zip_from_json(os.path.join(RAW_DATA_DIR, 'fetch_options_route.json'))
+    unzip_all_season_zips(RAW_DATA_DIR)
 
     # 把壓縮檔移除
     delete_all_real_estate_raw_zip()
 
     # 移除最新、歷史資料中不需要分析的檔案
     apply_function_to_real_estate_dirs(remove_irrelevant_csv_files)
-    

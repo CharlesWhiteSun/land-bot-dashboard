@@ -1,10 +1,9 @@
 import csv
 import json
 import os
-import pandas as pd
 import re
 from typing import Callable
-
+from config.paths import RAW_DATA_DIR  # 引入 config.paths 中的 RAW_DATA_DIR 定義
 
 def remove_irrelevant_csv_files(directory: str):
     """
@@ -29,12 +28,13 @@ def remove_irrelevant_csv_files(directory: str):
         parts = filename_lower.split("_")
 
         # 交易類別為 c
-        type_code = parts[3].replace(".csv", "")
-        if type_code == "c":
-            os.remove(filepath)
-            removed_files.append(filename)
-            continue
-        
+        if len(parts) > 3:
+            type_code = parts[3].replace(".csv", "")
+            if type_code == "c":
+                os.remove(filepath)
+                removed_files.append(filename)
+                continue
+
         if len(parts) <= 4:
             continue
 
@@ -57,9 +57,10 @@ def apply_function_to_real_estate_dirs(func: Callable[[str], None]):
     對 raw 資料夾底下的 latest_notice 和所有 historySeason_id 對應的子資料夾，呼叫傳入的函式 func。
     傳入的參數為「資料夾路徑」。
     """
-    base_dir = os.path.join("api", "data", "real_estate", "raw")
-    json_path = os.path.join(base_dir, "fetch_options_route.json")
+    # 確保 base 資料夾存在
+    os.makedirs(RAW_DATA_DIR, exist_ok=True)
 
+    json_path = os.path.join(RAW_DATA_DIR, "fetch_options_route.json")
     folder_names = {"latest_notice"}
 
     if os.path.exists(json_path):
@@ -69,6 +70,6 @@ def apply_function_to_real_estate_dirs(func: Callable[[str], None]):
             folder_names.update(folder_keys)
 
     for folder_name in folder_names:
-        folder_path = os.path.join(base_dir, folder_name)
+        folder_path = os.path.join(RAW_DATA_DIR, folder_name)
         if os.path.exists(folder_path):
             func(folder_path)
