@@ -24,5 +24,5 @@ ui.run(
     title=f"{SystemType.TITLE_LOGO.value} {SystemType.TITLE_NAME.value}",
     dark=True,
     show=False,
-    port=8080,
+    port=7860,
 )

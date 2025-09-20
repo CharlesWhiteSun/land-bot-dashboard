@@ -10,10 +10,6 @@ from api.routes.real_estate import fetch_options_route, fetch_latest_notice_rout
 from ngui.preprocessing.real_estate_cleaner import *
 from utils.fetch_manager import check_data
 from utils.logger import log_info
-import chromedriver_autoinstaller
-
-# 自動安裝相容的 ChromeDriver（根據系統內 Chrome 版本）
-chromedriver_autoinstaller.install()
 
 def file_unzip(base_path: str, file_name: str):
     extract_dir_path = os.path.join(base_path, file_name)

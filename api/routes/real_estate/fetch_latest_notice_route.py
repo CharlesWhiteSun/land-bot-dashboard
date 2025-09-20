@@ -2,16 +2,20 @@ import os
 import json
 import requests
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 from utils.logger import log_info, log_error
 from utils.trace import generate_trace_id
 from utils.notice_parser import parse_notice_to_dict
 from enums.error_code import ErrorCode
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import tempfile
+import chromedriver_autoinstaller
 
 from fastapi import APIRouter
 from utils.response_helper import success_response, error_response
@@ -43,7 +47,20 @@ def info_json() -> dict:
     driver = None
 
     try:
-        driver = webdriver.Chrome(options=chrome_options)
+        # 設定 ChromeDriver 可寫入目錄
+        CHROMEDRIVER_DIR = os.path.join(tempfile.gettempdir(), "chromedriver")
+        os.makedirs(CHROMEDRIVER_DIR, exist_ok=True)
+        chromedriver_path = chromedriver_autoinstaller.install(path=CHROMEDRIVER_DIR)
+
+        chrome_options = Options()
+        chrome_options.add_argument("--headless=new")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--window-size=1920,1080")
+
+        # 使用 Service 指定 chromedriver 路徑
+        service = Service(executable_path=chromedriver_path)
+        driver = webdriver.Chrome(service=service, options=chrome_options)
         driver.get(url)
 
         span = WebDriverWait(driver, 10, poll_frequency=0.25).until(
