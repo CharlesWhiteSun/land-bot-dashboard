@@ -18,6 +18,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from fastapi import APIRouter
 from utils.response_helper import success_response, error_response
 import chromedriver_autoinstaller
+import tempfile
 
 from config.paths import RAW_DATA_DIR, OLD_DATA_DIR, CHROMEDRIVER_DIR
 
@@ -32,6 +33,8 @@ def info_json() -> dict:
     os.makedirs(OLD_DATA_DIR, exist_ok=True)
 
     chrome_options = Options()
+    tmp_user_data_dir = tempfile.mkdtemp(dir=RAW_DATA_DIR)
+    chrome_options.add_argument(f"--user-data-dir={tmp_user_data_dir}")
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")

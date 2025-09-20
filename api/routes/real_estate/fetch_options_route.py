@@ -12,6 +12,7 @@ from enums.error_code import ErrorCode
 from utils.logger import log_error
 from utils.trace import generate_trace_id
 from utils.response_helper import success_response, error_response
+import tempfile
 
 from config.paths import RAW_DATA_DIR
 
@@ -46,6 +47,8 @@ def save_or_update_data(new_data: dict) -> bool:
 
 def fetch_options_and_save() -> dict:
     chrome_options = Options()
+    tmp_user_data_dir = tempfile.mkdtemp(dir=RAW_DATA_DIR)
+    chrome_options.add_argument(f"--user-data-dir={tmp_user_data_dir}")
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
