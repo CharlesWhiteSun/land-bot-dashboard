@@ -32,19 +32,23 @@ def info_json() -> dict:
     os.makedirs(RAW_DATA_DIR, exist_ok=True)
     os.makedirs(OLD_DATA_DIR, exist_ok=True)
 
+    # Selenium Chrome 設定
     chrome_options = Options()
-    tmp_user_data_dir = tempfile.mkdtemp(dir=RAW_DATA_DIR)
+    tmp_user_data_dir = tempfile.mkdtemp(prefix="chrome_", dir=RAW_DATA_DIR)
     chrome_options.add_argument(f"--user-data-dir={tmp_user_data_dir}")
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--use-gl=swiftshader")
-    chrome_options.add_argument("--enable-webgl")
-    chrome_options.add_argument("--ignore-gpu-blacklist")
-    chrome_options.add_argument('--ignore-certificate-errors')
-    chrome_options.add_argument('--ignore-ssl-errors')
-    chrome_options.add_argument('--allow-insecure-localhost')
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--disable-features=VizDisplayCompositor")
+    chrome_options.add_argument("--log-level=3")  # ERROR 以下訊息不會出現
     chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--ignore-certificate-errors")
+    chrome_options.add_argument("--ignore-ssl-errors")
+    chrome_options.add_argument("--allow-insecure-localhost")
+    chrome_options.add_argument("--remote-debugging-port=9222")
 
     driver = None
 

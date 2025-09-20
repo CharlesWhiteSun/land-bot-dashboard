@@ -7,14 +7,16 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
+import chromedriver_autoinstaller
+import tempfile
 
 from enums.error_code import ErrorCode
 from utils.logger import log_error
 from utils.trace import generate_trace_id
 from utils.response_helper import success_response, error_response
-import tempfile
+from config.paths import CHROMEDRIVER_DIR, RAW_DATA_DIR
 
-from config.paths import RAW_DATA_DIR
 
 router = APIRouter()
 
@@ -47,15 +49,29 @@ def save_or_update_data(new_data: dict) -> bool:
 
 def fetch_options_and_save() -> dict:
     chrome_options = Options()
-    tmp_user_data_dir = tempfile.mkdtemp(dir=RAW_DATA_DIR)
+    tmp_user_data_dir = tempfile.mkdtemp(prefix="chrome_", dir=RAW_DATA_DIR)
     chrome_options.add_argument(f"--user-data-dir={tmp_user_data_dir}")
-    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--disable-features=VizDisplayCompositor")
+    chrome_options.add_argument("--log-level=3")  # ERROR 以下訊息不會出現
     chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--ignore-certificate-errors")
+    chrome_options.add_argument("--ignore-ssl-errors")
+    chrome_options.add_argument("--allow-insecure-localhost")
+    chrome_options.add_argument("--remote-debugging-port=9222")
 
     driver = None
     try:
-        driver = webdriver.Chrome(options=chrome_options)
+        os.makedirs(CHROMEDRIVER_DIR, exist_ok=True)
+        chromedriver_path = chromedriver_autoinstaller.install(path=CHROMEDRIVER_DIR)
+        service = Service(executable_path=chromedriver_path)
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+
         driver.get("https://plvr.land.moi.gov.tw/DownloadOpenData")
 
         history_tab = WebDriverWait(driver, 10, poll_frequency=0.25).until(
