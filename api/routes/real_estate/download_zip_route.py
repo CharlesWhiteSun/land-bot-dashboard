@@ -37,18 +37,3 @@ def download_season_zip(season: str) -> Tuple[bool, str, str]:
 
 # ===== FastAPI Router =====
 router = APIRouter()
-
-
-@router.get("/download_zip")
-async def download_history_zip_by_season(season: str = Query(..., min_length=1, max_length=10)):
-    success, message, trace_id = download_season_zip(season)
-
-    if not success:
-        return error_response(
-            error_code=ErrorCode.FILE_NOT_FOUND.value,
-            message=message,
-            trace_id=trace_id,
-            status_code=404
-        )
-
-    return success_response(message=message)

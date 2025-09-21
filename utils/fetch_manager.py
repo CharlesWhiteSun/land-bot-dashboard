@@ -45,12 +45,12 @@ def save_data(data: Dict):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 # ===== 核心邏輯：是否需要更新資料 =====
-def check_data(new_data: Dict) -> Tuple[bool, str]:
+def check_data(new_data: Dict) -> Tuple[bool, bool, str]:
     """
     管理資料儲存與判斷是否更新。
 
     :param new_data: 新取得的資料 dict
-    :return: Tuple[是否有更新, 資訊文字]
+    :return: Tuple[有最新資料, 要拉取歷史資料, 資訊文字]
     """
     new_hash = calculate_data_hash(new_data)
 
@@ -59,7 +59,7 @@ def check_data(new_data: Dict) -> Tuple[bool, str]:
         save_data(new_data)
         write_current_hash(new_hash)
         mark_initialized()
-        return True, "系統首次啟動，已初始化資料"
+        return True, True, "系統首次啟動，需要初始化新及歷史資料"
     
     old_hash = read_previous_hash()
 
@@ -67,6 +67,6 @@ def check_data(new_data: Dict) -> Tuple[bool, str]:
         ensure_data_dir()
         save_data(new_data)
         write_current_hash(new_hash)
-        return True, "資料內容有更新，已重新儲存"
-    
-    return False, "資料未變動，無需更新"
+        return True, False, "只需更新新資料，不需拉取舊資料"
+
+    return False, False, "無需更新"

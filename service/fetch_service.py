@@ -9,7 +9,7 @@ from typing import List, Tuple
 from api.routes.real_estate import fetch_options_route, fetch_latest_notice_route, download_zip_route
 from ngui.preprocessing.real_estate_cleaner import *
 from utils.fetch_manager import check_data
-from utils.logger import log_info
+from utils.logger import log_info, log_warning
 from config.paths import RAW_DATA_DIR  # <-- 引入統一路徑設定
 
 
@@ -59,7 +59,7 @@ def delete_path_recursive(base_path: str, name: str) -> Tuple[bool, str]:
         target = os.path.join(base_path, name)
         if not os.path.exists(target):
             return True, f"☑️[無須刪除] 該路徑不存在: {target}"
-        
+
         if os.path.isfile(target):
             os.remove(target)
             return True, f"🗑️[已刪除檔案] {target}"
@@ -103,7 +103,7 @@ def delete_all_real_estate_raw_folder():
     # 處理 historySeason_id 對應資料夾
     json_path = os.path.join(RAW_DATA_DIR, "fetch_options_route.json")
     if not os.path.exists(json_path):
-        print(f"❌ 無法找到 {json_path}，略過 historySeason_id 處理")
+        print(f"⚠️無法找到 {json_path}，略過 historySeason_id 處理")
         return
     
     with open(json_path, "r", encoding="utf-8") as f:
@@ -202,60 +202,71 @@ def batch_download_zip_from_json(
         print("🎉 所有壓縮檔皆成功下載")
 
 
-def fetch_func():
+async def fetch_data() -> Tuple[bool, bool]:
+    """
+    抓取最新資料內容字串
+    :return: Tuple[成功, 需要資料庫處理]
+    """
     # 抓取最新資料內容字串
-    news = fetch_latest_notice_route.info_json()
+    news = await fetch_latest_notice_route.info_json()
     if not news['success']:
         msg = f"❌[失敗][本期下載-資料內容字串] 暫停此次更新。錯誤原因: {news['error']}"
         print(msg)
-        log_info(msg)
-        return
+        log_warning(msg)
+        return False, False
 
     # 檢查是否有需要更新
-    need_to_update, message = check_data(news['content'])
-    if not need_to_update:
-        msg = f"☑️[無須更新][本期下載-資料內容字串] {message}"
+    need_to_fetch_latest_data, need_to_get_history_data, message = check_data(news['content'])
+    if not need_to_fetch_latest_data:
+        msg = f"✅[本期下載-資料內容字串] {message}"
         print(msg)
         log_info(msg)
-        return
-    msg = f"✅[已更新][本期下載-資料內容字串] {message}"
+        return True, False
+    
+    msg = f"☑️[本期下載-資料內容字串][正在進行處理] {message}"
     print(msg)
     log_info(msg)
 
-    # 如果有新資料則刪除舊資料夾
-    delete_all_real_estate_raw_folder()
-
     # 抓取最新資料 zip
+    msg = "☑️[抓取最新資料內容字串] 開始下載最新資料壓縮檔..."
+    print(msg)
+    log_info(msg)
     resp = fetch_latest_notice_route.latest_notice_zip()
     if not resp['success']:
         msg = f"❌[下載失敗][本期下載 zip] 錯誤原因: {resp['error']}"
         print(msg)
-        log_info(msg)
-        return
+        log_warning(msg)
+        return False, False
     
     # 解壓縮新資料
     file_unzip(RAW_DATA_DIR, 'latest_notice')
 
     # 抓取歷史資料發布日期 option 字串
-    opts = fetch_options_route.fetch_options_and_save()
-    if not opts['success']:
-        msg = f"❌[更失敗][歷史資料-發布日期 option 字串] 暫停此次更新。錯誤原因: {opts['error']}"
-        print(msg)
-        log_info(msg)
-        return  
-    
-    msg = f"☑️[無須更新][歷史資料-發布日期 option 字串] 共取得 {len(opts['data'])} 筆"
-    if opts['updated']:
-        msg = f"✅[已更新][歷史資料-發布日期 option 字串] 共取得 {len(opts['data'])} 筆"
-    print(msg)
-    log_info(msg)
+    if need_to_get_history_data:
+        opts = await fetch_options_route.get_history_data_and_save()
+        if not opts['success']:
+            msg = f"❌[更新歷史資料失敗] 暫停此次更新。錯誤原因: {opts['error']}"
+            print(msg)
+            log_warning(msg)
+            return False, False
+        
+        need_to_update_history = opts['updated']
+        if not need_to_update_history:
+            msg = f"✅[無須更新歷史資料] 共取得 {len(opts['data'])} 筆"
+            print(msg)
+            log_info(msg)
+        else:
+            msg = "☑️[歷史資料] 開始下載..."
+            print(msg)
+            log_info(msg)
 
-    # 抓取歷史資料 zip，解壓縮
-    batch_download_zip_from_json(os.path.join(RAW_DATA_DIR, 'fetch_options_route.json'))
-    unzip_all_season_zips(RAW_DATA_DIR)
+            batch_download_zip_from_json(os.path.join(RAW_DATA_DIR, 'fetch_options_route.json'))
+            unzip_all_season_zips(RAW_DATA_DIR)
 
     # 把壓縮檔移除
     delete_all_real_estate_raw_zip()
 
     # 移除最新、歷史資料中不需要分析的檔案
     apply_function_to_real_estate_dirs(remove_irrelevant_csv_files)
+
+    return True, True

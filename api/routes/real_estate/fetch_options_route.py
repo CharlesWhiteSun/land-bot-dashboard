@@ -2,21 +2,20 @@ import os
 import json
 import requests
 from fastapi import APIRouter
-from playwright.sync_api import sync_playwright
+import asyncio
+from playwright.async_api import async_playwright
 
 from enums.error_code import ErrorCode
 from utils.logger import log_error
 from utils.trace import generate_trace_id
-from utils.response_helper import success_response, error_response
 from config.paths import RAW_DATA_DIR
 
 
 router = APIRouter()
-
 DATA_FILE = os.path.join(RAW_DATA_DIR, "fetch_options_route.json")
 
 
-def save_or_update_data(new_data: dict) -> bool:
+def need_to_update_or_not(new_data: dict) -> bool:
     os.makedirs(RAW_DATA_DIR, exist_ok=True)
 
     if not os.path.exists(DATA_FILE):
@@ -40,60 +39,43 @@ def save_or_update_data(new_data: dict) -> bool:
     return updated
 
 
-def fetch_options_and_save() -> dict:
+async def get_history_data_and_save() -> dict:
     trace_id = generate_trace_id()
     try:
         url = "https://plvr.land.moi.gov.tw/DownloadOpenData"
 
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(url, timeout=30000)
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+            await page.goto(url, timeout=30000)
 
             # 切換到「歷史資料」分頁
-            page.locator('a.btndl[aria-controls="tab_opendata_history_content"]').click()
+            await page.locator('a.btndl[aria-controls="tab_opendata_history_content"]').click()
 
             # 等待 select 出現
             select_locator = page.locator("#historySeason_id")
-            select_locator.wait_for(timeout=10000)
+            await select_locator.wait_for(timeout=10000)
 
-            # 抓取所有 <option>
-            options = select_locator.locator("option").all()
-            result = {
-                "historySeason_id": {
-                    opt.get_attribute("value"): opt.inner_text().strip()
-                    for opt in options if opt.get_attribute("value")
-                }
-            }
-            browser.close()
+            # 正確方式：拿 element handles
+            option_handles = await select_locator.locator("option").element_handles()
+
+            result = {"historySeason_id": {}}
+            for opt in option_handles:
+                value = await opt.get_attribute("value")
+                if value:
+                    text = (await opt.inner_text()).strip()
+                    result["historySeason_id"][value] = text
+
+            await browser.close()
 
         if not result["historySeason_id"]:
             msg = "抓取失敗，歷史 Season 選單為空"
             log_error(ErrorCode.UNKNOWN_ERROR.value, msg, trace_id)
             return {"success": False, "trace_id": trace_id, "error": msg}
 
-        updated = save_or_update_data(result)
-        return {"success": True, "data": result["historySeason_id"], "updated": updated}
+        need_to_updated = need_to_update_or_not(result)
+        return {"success": True, "data": result["historySeason_id"], "updated": need_to_updated}
 
     except Exception as e:
         log_error(ErrorCode.UNKNOWN_ERROR.value, f"抓取失敗：{str(e)}", trace_id)
         return {"success": False, "trace_id": trace_id, "error": str(e)}
-
-
-
-@router.get("/fetch_options")
-async def fetch_options():
-    result = fetch_options_and_save()
-
-    if result["success"]:
-        return success_response({
-            "historySeason_id": result["data"],
-            "updated": result["updated"]
-        })
-
-    return error_response(
-        error_code=ErrorCode.UNKNOWN_ERROR.value,
-        message="資料抓取失敗，請稍後再試",
-        trace_id=result["trace_id"],
-        status_code=500
-    )

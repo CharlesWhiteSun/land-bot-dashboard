@@ -2,6 +2,9 @@ from nicegui import ui
 from ngui.components.countdown_button import CountdownButton
 from ngui.components.main_area import *
 
+from service.fetch_service import fetch_data
+from ngui.preprocessing.process_real_estate_and_import import apply_clean_and_import_file
+
 BTN_COLOR = '#00120B'
 SIDE_BG_COLOR = '#454851'
 MAIN_CTX_STYLE = f"""
@@ -9,6 +12,33 @@ MAIN_CTX_STYLE = f"""
     font-size: 1.3rem;
     font-weight: 600;
 """
+
+async def update_data():
+    dialog = ui.dialog()
+    with dialog, ui.card():
+        ui.label('確認資料更新中... 請稍候')
+    dialog.open()
+
+    try:
+        ok, need_to_import_file = await fetch_data()
+        if not ok:
+            ui.notify('資料更新失敗，請反應給站長協助處理', type='negative', position='top')
+            return
+        
+        if need_to_import_file:
+            apply_clean_and_import_file()
+            ui.notify('資料更新完成', type='positive', position='top')
+            return
+        
+        ui.notify('目前資料皆已是最新版本', type='positive', position='top')
+
+    except Exception as e:
+        ui.notify('資料更新失敗，請反應給站長協助處理', type='negative', position='top')
+        log_warning(f'查詢 [不動產分佈圖] 失敗：{str(e)}')
+
+    finally:
+        dialog.close()
+
 
 def render_sidebar():
     with ui.left_drawer(fixed=True).props('width=320').style(f'''
@@ -26,6 +56,11 @@ def render_sidebar():
                             color=BTN_COLOR,
                             on_click=render_main,
                             style_fmt=style_fmt_ctx)
+            
+            ui.button('更新資料',
+                      icon='sync',
+                      color=BTN_COLOR,
+                      on_click=update_data)
 
         with ui.column().classes('w-[100%] h-screen items-left').style('gap:0.75rem'):
 

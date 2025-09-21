@@ -5,7 +5,7 @@ import sqlite3
 import re
 import csv
 
-from utils.logger import log_warning
+from utils.logger import log_warning, log_info
 from config.paths import RAW_DATA_DIR, OLD_DATA_DIR, DB_PATH
 
 def get_house_type(diff_year):
@@ -284,3 +284,7 @@ def apply_clean_and_import_file():
 
     conn.commit()
     conn.close()
+
+    print("✅ 所有檔案處理完成")
+    log_info("✅ 所有檔案處理完成")
+    

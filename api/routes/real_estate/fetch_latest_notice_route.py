@@ -2,7 +2,8 @@ import os
 import json
 import requests
 from datetime import datetime
-from playwright.sync_api import sync_playwright
+# from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 
 from fastapi import APIRouter
 from utils.logger import log_info, log_error
@@ -14,26 +15,24 @@ from config.paths import RAW_DATA_DIR, OLD_DATA_DIR
 
 router = APIRouter()
 
-def info_json() -> dict:
+async def info_json() -> dict:
     url = "https://plvr.land.moi.gov.tw/DownloadOpenData"
     trace_id = generate_trace_id()
     json_path = os.path.join(RAW_DATA_DIR, "latest_notice.json")
     zip_path = os.path.join(RAW_DATA_DIR, "latest_notice.zip")
 
-    print(json_path)
-
     os.makedirs(RAW_DATA_DIR, exist_ok=True)
     os.makedirs(OLD_DATA_DIR, exist_ok=True)
 
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(url, timeout=30000)
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+            await page.goto(url, timeout=30000)
 
             # 等待元素渲染出來
-            span_text = page.locator("#tab_opendata_active_content span.text-danger").inner_text(timeout=10000)
-            browser.close()
+            span_text = await page.locator("#tab_opendata_active_content span.text-danger").inner_text(timeout=10000)
+            await browser.close()
 
         # 解析公告文字
         new = parse_notice_to_dict(span_text)
@@ -86,16 +85,3 @@ def latest_notice_zip() -> dict:
     except Exception as e:
         log_error(ErrorCode.UNKNOWN_ERROR.value, str(e), trace_id)
         return {"success": False, "trace_id": trace_id, "error": str(e)}
-
-
-@router.get("/fetch_latest_notice")
-async def fetch_latest_notice():
-    result = info_json()
-    if result["success"]:
-        return success_response({"updated": result.get("updated", False), "content": result['content']})
-    return error_response(
-        error_code=ErrorCode.UNKNOWN_ERROR.value,
-        message=result.get("error", "抓取失敗"),
-        trace_id=result.get("trace_id", ""),
-        status_code=500
-    )

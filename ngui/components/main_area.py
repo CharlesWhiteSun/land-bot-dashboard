@@ -32,7 +32,7 @@ def render_main():
 
         ui.label('🗺️ Instructions').style(MAIN_LABEL_STYLE)
         ui.markdown('''
-            - Menu, Charts 可收放子選單；右上按鈕可收放 Side Bar 選單
+            - 左方 Menu, Charts 欄位點選可收放子選單；右上選單按鈕可收放 Side Bar 選單
             - 有任何問題，請先確認資料來源是否正確
             - 其他建議或需求，請聯繫開發者
             - 後續若有其他資料如成交車位等查詢需求，可再視狀況更新

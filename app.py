@@ -1,8 +1,8 @@
-from service.fetch_service import fetch_func
-from ngui.preprocessing.process_real_estate_and_import import apply_clean_and_import_file
+import asyncio
+import sys
 
-fetch_func()
-apply_clean_and_import_file()
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 from nicegui import ui, app
 from enums.constants import SystemType
@@ -25,4 +25,5 @@ ui.run(
     dark=True,
     show=False,
     port=7860,
+    reload=False,
 )
