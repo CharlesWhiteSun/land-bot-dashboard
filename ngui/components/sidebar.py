@@ -13,6 +13,27 @@ MAIN_CTX_STYLE = f"""
     font-weight: 600;
 """
 
+UPDATE_PASSWORD = 'hf_secret_123'
+
+async def update_data_with_password():
+    """彈密碼輸入框後，正確才能觸發更新"""
+    dialog = ui.dialog()
+    with dialog, ui.card():
+        ui.label('請輸入密碼以更新資料')
+        password_input = ui.input(password=True, placeholder='密碼')
+        submit_btn = ui.button('確認')
+
+    dialog.open()
+
+    async def check_password():
+        if password_input.value == UPDATE_PASSWORD:
+            dialog.close()
+            await update_data()
+        else:
+            ui.notify('密碼錯誤 ❌', type='negative', position='top')
+
+    submit_btn.on('click', check_password)
+
 async def update_data():
     dialog = ui.dialog()
     with dialog, ui.card():
@@ -56,6 +77,12 @@ def render_sidebar():
                             color=BTN_COLOR,
                             on_click=render_main,
                             style_fmt=style_fmt_ctx)
+            
+           # 隱藏更新按鈕（display:none）
+            ui.button('更新資料', on_click=update_data_with_password) \
+                .style('display:none') \
+                .props('id=hidden_update_btn')
+
             
         with ui.column().classes('w-[100%] h-screen items-left').style('gap:0.75rem'):
 
