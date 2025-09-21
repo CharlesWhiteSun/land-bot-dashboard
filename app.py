@@ -4,6 +4,9 @@ import sys
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
+from api.routes.real_estate.admin_update_page import create_admin_update_page
+create_admin_update_page()
+
 from nicegui import ui, app
 from enums.constants import SystemType
 from ngui.components.footer import render_footer

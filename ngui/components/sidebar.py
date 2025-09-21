@@ -57,11 +57,6 @@ def render_sidebar():
                             on_click=render_main,
                             style_fmt=style_fmt_ctx)
             
-            ui.button('更新資料',
-                      icon='sync',
-                      color=BTN_COLOR,
-                      on_click=update_data)
-
         with ui.column().classes('w-[100%] h-screen items-left').style('gap:0.75rem'):
 
             # Charts expansion
