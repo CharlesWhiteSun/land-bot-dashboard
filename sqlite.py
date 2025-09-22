@@ -1,0 +1,2 @@
+from ngui.preprocessing.process_real_estate_and_import import apply_clean_and_import_file
+apply_clean_and_import_file()
